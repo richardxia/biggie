@@ -1,0 +1,6 @@
+#!/bin/bash
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# TODO: Figure out correct path for sbt builds
+export CLASSPATH=$DIR/../target/scala-2.9.1/classes
+scala Biggie $@
