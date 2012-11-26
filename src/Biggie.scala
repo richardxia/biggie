@@ -28,18 +28,27 @@ object Biggie {
     unimplemented()
   }
 
+  def invalidCommand(arg: String) {
+    println("Invalid command: " + arg)
+    println(usage)
+    System.exit(3)
+  }
+
   def main(args: Array[String]) {
-    if (args.length == 0 || args.length == 1) {
+    if (args.length == 0) {
       println(usage)
       System.exit(1)
     }
 
     val cmd = args(0)
+    val cmdArgs = if (args.length > 0) args.slice(1, args.length)
+                  else Array[String]()
     cmd match {
-      case "all" => runAll(args.slice(1, args.length))
-      case "sort" => runSort(args.slice(1, args.length))
-      case "classify" => runClassify(args.slice(1, args.length))
-      case "snp" => runSnp(args.slice(1, args.length))
+      case "all" => runAll(cmdArgs)
+      case "sort" => runSort(cmdArgs)
+      case "classify" => runClassify(cmdArgs)
+      case "snp" => runSnp(cmdArgs)
+      case _ => invalidCommand(cmd)
     }
   }
 }
