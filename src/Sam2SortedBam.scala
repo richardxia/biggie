@@ -1,7 +1,7 @@
 /**
 * input: unsorted sam file (first commandline argument)
 * output: sorted bam file (second commandline argument)
-* temporary files will created in the current directory (not deleted right now)
+* temporary files will created and deleted in the current directory
 */
 
 import java.io._
@@ -14,9 +14,10 @@ import scala.sys.process.ProcessIO
 object Sam2SortedBam {
 
 	// globals
-	val NUM_LINES = 20000000 // number of lines in each file created by splitting the inSamFile
-	val PREFIX = "unsorted" // prefix for the intermediate files
-	val NUM_THREADS = 4;    // number of threads to use
+	val NUM_LINES = 8700000  // number of lines in each file created by splitting the inSamFile
+	val PREFIX = "unsorted"  // prefix for the intermediate files, no other files in the directory should begin with PREFIX
+	val NUM_THREADS = 7      // number of threads to use
+	val MAX_MEM = 1000000000 // max memory for sorting, NUM_THREADS * MAX_MEM should not exceed total memory 
 
 	// write a set of strings to a new file
 	def writeFile(fileName: String, data: Iterator[String]) = {
@@ -46,32 +47,19 @@ object Sam2SortedBam {
 	}
 
 	// our file processing thread, returns type String
-	class FileThread(fileName: String) extends Callable[String] {
+	class FileThread(fileName: String, refName: String) extends Callable[String] {
 
-		// TODO: currently not deleting temp files
 		def call():String = {
 
-			// add header to file if necessary (first file already has it)
-			if (fileName != PREFIX + "aa") {
-				val pb3 = Process("cat header.txt " + fileName) 
-				val pio3 = new ProcessIO(_ => (), stdout => writeFile(fileName + "_header.sam", scala.io.Source.fromInputStream(stdout).getLines), _ => ())
-				val p3 = pb3.run(pio3)
-				println(p3.exitValue())
-			} else {
-				val pb3 = Process("mv " + fileName + " " + fileName + "_header.sam")
-				val p3 = pb3.run()
-				println(p3.exitValue())
-			}
-
 			// convert file to bam
-			val pb4 = Process("samtools view -b -S -o " + fileName + ".bam " + fileName + "_header.sam")
-			val p4 = pb4.run()
-			println(p4.exitValue())
+			val pb2 = Process("samtools view -h -b -S -u -t " + refName + " -o " + fileName + ".bam " + fileName)
+			val p2 = pb2.run()
+			println("sam to bam: " + fileName + " " + p2.exitValue())
 
 			// sort bam file
-			val pb5 = Process("samtools sort " + fileName + ".bam " + fileName + "_sorted") // TODO: sort can take in a max memory flag (-m)
-			val p5 = pb5.run()
-			println(p5.exitValue())
+			val pb3 = Process("samtools sort -m " + MAX_MEM + " " + fileName + ".bam " + fileName + "_sorted")
+			val p3 = pb3.run()
+			println("sorted bam: " + fileName + " " + p3.exitValue())
 
 			return "finished " + fileName
 		}
@@ -79,19 +67,14 @@ object Sam2SortedBam {
 
 	def main(args: Array[String]) {
 
-		val inSamFile = args(0)
-		val outBamFile = args(1)
-
-		// create the header file
-		val pb0 = Process("samtools view -H -S " + inSamFile)
-		val pio0 = new ProcessIO(_ => (), stdout => writeFile("header.txt", scala.io.Source.fromInputStream(stdout).getLines), _ => ())
-		val p0 = pb0.run(pio0)
-		println(p0.exitValue())
+		val inSamFile = args(0)  // unsorted SAM file
+		val refName = args(1)    // reference index file (fai format)
+		val outBamFile = args(2) // output BAM file
 
 		// split up the sam file
 		val pb1 = Process("split -l " + NUM_LINES + " " + inSamFile + " " + PREFIX)
 		val p1 = pb1.run()
-		println(p1.exitValue())
+		println("split sam file " + p1.exitValue())
 
 		// get list of files
 		val fileList = getFileList()
@@ -102,7 +85,7 @@ object Sam2SortedBam {
 		val allHapThreads = new ArrayList[FileThread]()
 		for (i <- 0 to (numFiles-1)) {
 			val fileName = fileList.get(i)
-			allHapThreads.add(new FileThread(fileName))
+			allHapThreads.add(new FileThread(fileName, refName))
 			nameString += fileName + "_sorted.bam "
 		}
 		
@@ -115,8 +98,13 @@ object Sam2SortedBam {
 		}
 
 		// merge all the sorted bams
-		val pb6 = Process("samtools merge " + outBamFile + " " + nameString)
-		val p6 = pb6.run()
-		println(p6.exitValue())
+		val pb4 = Process("samtools merge " + outBamFile + " " + nameString)
+		val p4 = pb4.run()
+		println("merged sorted bams " + p4.exitValue())
+
+		// delete temporary files
+		val pb5 = Process("rm " + PREFIX + "*")
+		val p5 = pb5.run()
+		println("deleted temp files " + p5.exitValue())
 	}
 }
