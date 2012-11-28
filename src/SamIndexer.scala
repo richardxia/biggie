@@ -1,10 +1,50 @@
 package biggie
 
+import scala.io.Source
+
+class SamIndexer(fileName: String) {
+  val file = Source.fromFile(fileName)
+  val positions: Array[(Int, Long)] = file.getLines().map(line => {
+    val values = line.split('\t')
+    val coord: Int = values(0).toInt
+    val offset: Long = values(1).toLong
+    (coord, offset)
+  }).toArray
+  //val posMap = new collection.mutable.HashMap[Int, Long]
+  //for (line <- file.getLines()) {
+  //  val values = line.split('\t')
+  //  val coord = values(0).toInt
+  //  val offset = values(1).toLong
+  //  posMap(coord) = offset
+  //}
+
+  def apply(coord: Int): Long = {
+    //posMap(coord)
+    val index = binarySearch(coord, 0, positions.size)
+    positions(index)._2
+  }
+
+  private def binarySearch(coord: Int, min: Int, max: Int): Int = {
+    if (max <= min) {
+      return max
+    }
+    val mid = (min + max)/2
+    if (positions(mid)._1 > coord) {
+      return binarySearch(coord, min, mid-1)
+    } else if (positions(mid)._1 < coord) {
+      return binarySearch(coord, mid, max)
+    } else {
+      return mid
+    }
+  }
+}
+
 object SamIndexer {
   def main(args: Array[String]) {
     if (args.size != 1) {
       println("Usage: SamIndexer file.sam")
       println("Creates a file named file.sam.sai")
+      println("Each line is 'genome-coordinate<TAB>byte-offset'")
       System.exit(1)
     }
 

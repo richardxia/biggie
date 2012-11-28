@@ -3,7 +3,8 @@ package biggie
 import scala.io.Source
 import scala.math.{max, min}
 
-class SnpCaller(samFile: String, refFile: String, region: Range = 1 until 2) {
+//class SnpCaller(samFile: String, refFile: String, region: Range = 1 until 2) {
+class SnpCaller(reader: SamRegionReader, refFile: String, region: Range = 1 until 2) {
   // [region.start, region.end) with respect to reference, 1-indexed
 
   // Range of coverages for which to call bases, both in total and per direction.
@@ -16,13 +17,13 @@ class SnpCaller(samFile: String, refFile: String, region: Range = 1 until 2) {
   val SECOND_DIRECTIONAL_THRESHOLD = 0.01  // Ditto but per direction
 
   val ref: Array[Byte] = FASTA.read(refFile).pieces(0).data // 0-indexed
-  val reader = new SamRegionReader(samFile, region) // 1-indexed
+  //val reader = new SamRegionReader(samFile, region) // 1-indexed
   val baseCount = Array.ofDim[Int](2, 4, region.size + 100)
   val coverage = Array.ofDim[Int](2, region.size + 100)
   val snps = new Array[SNP](region.size + 100)
 
   def run() {
-    for (read <- reader.reads) {
+    for (read <- reader.reads()) {
       val dir = read.direction
       var posInRef = read.position
       var posInRead = 0
@@ -132,8 +133,10 @@ object SnpCaller {
       val range = line.split('\t').map(_.toInt)
       range(0) until range(1)
     })
+    val reader = new SamRegionReader(args(0), 1 until 2) // 1-indexed
     for (region <- regions) {
-      val snps = new SnpCaller(args(0), args(1), region).run()
+      reader.region = region
+      val snps = new SnpCaller(reader, args(1), region).run()
     }
   }
 }
