@@ -23,10 +23,10 @@ class SimpleClassifier(samFile: String, length: Int){
   val SUB_WEIRDNESS = 3
   val INDEL_WEIRDNESS = 10
   val MULTI_WEIRDNESS = 3         // From a multiple-hits read mapping to a given place.
-  val WEIRDNESS_THRESHOLD = 0.05
+  val WEIRDNESS_THRESHOLD = 0.1
   val MIN_PHRED = 30              // Ignore bases mapped with score lower than this.
-  val HIGH_COMPLEXITY_GAP = 5
-  val MIN_HIGH_COMPLEXITY_REGION_LENGTH = 10
+  val MIN_HIGH_COMPLEXITY_REGION_LENGTH = 1000
+  val MIN_HIGH_COMPLEXITY_REGION_DENSITY = 0.15
 
   // Range of coverages for which to call bases, both in total and per direction.
   val MIN_TOTAL_COVERAGE = 22
@@ -173,33 +173,48 @@ class SimpleClassifier(samFile: String, length: Int){
     var left = -1
     var last = -1
     var pos = 200
+	var counter = 0
     var total_length = 0
+	var covered_count = 0
+	var total_count = 0
     while (pos < position) {
-	val totalCoverage = coverage(0)(pos) + coverage(1)(pos)
-	if (computeWeirdness(pos) >= WEIRDNESS_THRESHOLD &&
-	totalCoverage >= MIN_TOTAL_COVERAGE && totalCoverage <= MAX_TOTAL_COVERAGE &&
-	coverage(0)(pos) >= MIN_DIR_COVERAGE && coverage(0)(pos) <= MAX_DIR_COVERAGE &&
-	coverage(1)(pos) >= MIN_DIR_COVERAGE && coverage(1)(pos) <= MAX_DIR_COVERAGE) 
-	{
-		if(left == -1)
+		val totalCoverage = coverage(0)(pos) + coverage(1)(pos)
+		if (computeWeirdness(pos) >= WEIRDNESS_THRESHOLD &&
+		totalCoverage >= MIN_TOTAL_COVERAGE && totalCoverage <= MAX_TOTAL_COVERAGE &&
+		coverage(0)(pos) >= MIN_DIR_COVERAGE && coverage(0)(pos) <= MAX_DIR_COVERAGE &&
+		coverage(1)(pos) >= MIN_DIR_COVERAGE && coverage(1)(pos) <= MAX_DIR_COVERAGE) 
 		{
-			left = pos;
-		}
-		else if(pos - last > HIGH_COMPLEXITY_GAP)
-		{
-			if( last-left+1 >= MIN_HIGH_COMPLEXITY_REGION_LENGTH )
+			if(left == -1)
 			{
-				println("High complexity region of length " + (last-left+1) + " in ["+(left+offset)+", "+(last+offset)+"]")				
-				total_length += last-left+1
+				left = pos
 			}
-			left = pos;
+			else if( (counter+1)/(pos-left+1.0) <  MIN_HIGH_COMPLEXITY_REGION_DENSITY)
+			{
+				if( last-left+1 >= MIN_HIGH_COMPLEXITY_REGION_LENGTH )
+				{
+					println("Region:\t"+(left+offset)+"\t--\t"+(last+offset)+"\tLength:\t"+(last-left+1)+"\tDensity:\t"+(counter/(last-left+1.0)))				
+					total_length += last-left+1
+					covered_count += counter
+				}
+				counter = 0
+				left = pos
+			}
+			last = pos
+			counter += 1
+			total_count += 1
 		}
-		last = pos;
-	}
-	pos += 1
+		pos += 1
     }
+
+	if( last-left+1 >= MIN_HIGH_COMPLEXITY_REGION_LENGTH )
+	{
+		println("Region:\t"+(left+offset)+"\t--\t"+(last+offset)+"\tLength:\t"+(last-left+1)+"\tDensity:\t"+(counter/(last-left+1.0)))				
+		total_length += last-left+1
+	}
+
     println("Classifying genome sequence of length "+(position-200)+" in ["+(200+offset)+", "+(position+offset)+"]")
     println("High complexity length = "+total_length)
+	println("Covers "+covered_count+"/"+total_count+" weird bases")
   }
 
   // Call the base at the given position
