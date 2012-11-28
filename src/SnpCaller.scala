@@ -1,48 +1,44 @@
 package biggie
 
-class SnpCaller(samFile: String, start: Int = 0, end: Int = 1) {
-  val reader = new SamRegionReader(samFile, start until end)
-  val size = end - start
+class SnpCaller(samFile: String, refFile: String, regionStart: Int = 1, regionEnd: Int = 2) {
+  // [regionStart, regionEnd) with respect to reference, 1-indexed
+  val ref: Array[Byte] = FASTA.read(refFile).pieces(0).data // 0-indexed
+  val reader = new SamRegionReader(samFile, regionStart until regionEnd) // 1-indexed
+  val size = regionEnd - regionStart
   val baseCount = Array.ofDim[Int](2, 4, size)
   val coverage = Array.ofDim[Int](2, size)
   val baseCalls = new Array[Int](size)
 
-  // [start, end) with respect to reference
   def run() {
-    //  For each read in region
-    //    build hash table of counts
     for (read <- reader.reads) {
-      var regionPos = read.position - start
-      if (regionPos < 0)
-        regionPos = 0
-      var max = read.position + read.sequence.size - start
-      if (max >= size)
-        max = size
       val dir = read.direction
-      while (regionPos < max) {
-        val base = DNA.BASE_TO_CODE(read.sequence.charAt(regionPos - read.position))
+      for (pos <- math.max(read.position, regionStart) until math.min(read.endPosition, regionEnd)) {
+        val base = DNA.BASE_TO_CODE(read.sequence.charAt(pos - read.position))
+        val regionPos = pos - regionStart
         baseCount(dir)(base)(regionPos) += 1
+        coverage(dir)(regionPos) += 1
       }
     }
 
-    for (pos <- 0 until size) {
+    for (pos <- regionStart until regionEnd) {
       call(pos)
     }
     baseCalls
   }
 
-  // pos 0 is first base of region
+  // pos 0 is first base of region which is 1-indexed
   private def call(pos: Int) {
-    val totalCoverage = coverage(0)(pos) + coverage(1)(pos)
+    val regionPos = pos - regionStart
+    val totalCoverage = coverage(0)(regionPos) + coverage(1)(regionPos)
     var best = 0
     var bestFrac = 0.0
     var second = 0
     var secondFrac = 0.0
     for (base <- 0 until 4) {
-        val frac = if (baseCount(0)(base)(pos) == 0 || baseCount(1)(base)(pos) == 0) {
+        val frac = if (baseCount(0)(base)(regionPos) == 0 || baseCount(1)(base)(regionPos) == 0) {
           0.0
         } else {
-          (baseCount(0)(base)(pos) + baseCount(1)(base)(pos)).toDouble / totalCoverage
+          (baseCount(0)(base)(regionPos) + baseCount(1)(base)(regionPos)).toDouble / totalCoverage
         }
         if (frac > bestFrac) {
           second = best
@@ -56,12 +52,20 @@ class SnpCaller(samFile: String, start: Int = 0, end: Int = 1) {
     }
 
     // Just call best for now
-    baseCalls(pos) = best
+    baseCalls(regionPos) = best
+    val base = if (bestFrac == 0.0) "N" else DNA.CODE_TO_BASE(best)
+    if (base != ref(pos-1).toChar)
+      print("$(" + ref(pos-1).toChar + "->" + base + ")")
+    else
+      print(base)
+    //print(" ")
+    //print(bestFrac)
+    //print(" ")
   }
 }
 
 object SnpCaller {
   def main(args: Array[String]) {
-    val baseCalls = new SnpCaller(args(0), args(1).toInt, args(2).toInt).run()
+    val baseCalls = new SnpCaller(args(0), args(1), args(2).toInt, args(3).toInt).run()
   }
 }

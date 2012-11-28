@@ -13,6 +13,7 @@ class SAMEntry(
     val sequence: String,
     val quality: String) {
   override def toString(): String = readId
+  val endPosition = position + sequence.size // one position past the last base
 
   def direction = if ((flags & SAM.REVERSE) != 0) 1 else 0
 }

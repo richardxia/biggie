@@ -11,7 +11,7 @@ object SAM {
       fields(0),                  // read ID
       fields(1).toInt,            // flags
       fields(2),                  // piece
-      fields(3).toInt,            // position
+      fields(3).toInt,            // position (1-indexed)
       fields(4).toInt,            // map quality
       fields(5),                  // cigar
       fields(6),                  // next piece
