@@ -1,9 +1,10 @@
 package biggie
 
+import scala.io.Source
 import scala.math.{max, min}
 
-class SnpCaller(samFile: String, refFile: String, regionStart: Int = 1, regionEnd: Int = 2) {
-  // [regionStart, regionEnd) with respect to reference, 1-indexed
+class SnpCaller(samFile: String, refFile: String, region: Range = 1 until 2) {
+  // [region.start, region.end) with respect to reference, 1-indexed
 
   // Range of coverages for which to call bases, both in total and per direction.
   val TOTAL_COVERAGE_RANGE = 20 to 100
@@ -15,11 +16,10 @@ class SnpCaller(samFile: String, refFile: String, regionStart: Int = 1, regionEn
   val SECOND_DIRECTIONAL_THRESHOLD = 0.01  // Ditto but per direction
 
   val ref: Array[Byte] = FASTA.read(refFile).pieces(0).data // 0-indexed
-  val reader = new SamRegionReader(samFile, regionStart until regionEnd) // 1-indexed
-  val regionSize = regionEnd - regionStart
-  val baseCount = Array.ofDim[Int](2, 4, regionSize + 100)
-  val coverage = Array.ofDim[Int](2, regionSize + 100)
-  val snps = new Array[SNP](regionSize + 100)
+  val reader = new SamRegionReader(samFile, region) // 1-indexed
+  val baseCount = Array.ofDim[Int](2, 4, region.size + 100)
+  val coverage = Array.ofDim[Int](2, region.size + 100)
+  val snps = new Array[SNP](region.size + 100)
 
   def run() {
     for (read <- reader.reads) {
@@ -33,8 +33,8 @@ class SnpCaller(samFile: String, refFile: String, regionStart: Int = 1, regionEn
             for (i <- 0 until count) {
               // TODO: Filter based on Phred score
               val base = DNA.BASE_TO_CODE(read.sequence.charAt(posInRead))
-              if ( (regionStart until regionEnd) contains posInRef) {
-                val regionPos = posInRef - regionStart
+              if ( region contains posInRef) {
+                val regionPos = posInRef - region.start
                 baseCount(dir)(base)(regionPos) += 1
                 coverage(dir)(regionPos) += 1
               }
@@ -54,7 +54,7 @@ class SnpCaller(samFile: String, refFile: String, regionStart: Int = 1, regionEn
       }
     }
 
-    for (pos <- regionStart until regionEnd) {
+    for (pos <- region) {
       call(pos)
     }
     snps
@@ -62,7 +62,7 @@ class SnpCaller(samFile: String, refFile: String, regionStart: Int = 1, regionEn
 
   // pos 0 is first base of region which is 1-indexed
   private def call(pos: Int) {
-    val regionPos = pos - regionStart
+    val regionPos = pos - region.start
     val totalCoverage = coverage(0)(regionPos) + coverage(1)(regionPos)
     if (!TOTAL_COVERAGE_RANGE.contains(totalCoverage) ||
         !DIR_COVERAGE_RANGE.contains(coverage(0)(regionPos)) ||
@@ -95,7 +95,7 @@ class SnpCaller(samFile: String, refFile: String, regionStart: Int = 1, regionEn
   }
 
   private def callOne(pos: Int, base: Char) {
-    val regionPos = pos - regionStart
+    val regionPos = pos - region.start
     if (base != ref(pos-1).toChar) {
       val snp = new SNP(ref(pos-1).toChar, base, base)
       snps(regionPos) = snp
@@ -106,7 +106,7 @@ class SnpCaller(samFile: String, refFile: String, regionStart: Int = 1, regionEn
   }
 
   private def callTwo(pos: Int, base1: Char, base2: Char) {
-    val regionPos = pos - regionStart
+    val regionPos = pos - region.start
     val snp = {
       if (base1 == ref(pos-1).toChar) {
         new SNP(ref(pos-1).toChar, base1, base2)
@@ -124,6 +124,16 @@ class SnpCaller(samFile: String, refFile: String, regionStart: Int = 1, regionEn
 
 object SnpCaller {
   def main(args: Array[String]) {
-    val snps = new SnpCaller(args(0), args(1), args(2).toInt, args(3).toInt).run()
+    if (args.size != 3) {
+      println("Usage: SnpCaller alignments.sam reference.fa regions.txt")
+      println("regions.txt should be a text file with tab-delimited start and end positions on each line")
+    }
+    val regions = Source.fromFile(args(2)).getLines.map( line => {
+      val range = line.split('\t').map(_.toInt)
+      range(0) until range(1)
+    })
+    for (region <- regions) {
+      val snps = new SnpCaller(args(0), args(1), region).run()
+    }
   }
 }
