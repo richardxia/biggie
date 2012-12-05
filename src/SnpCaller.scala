@@ -1,10 +1,14 @@
 package biggie
 
+import java.io.File
+
 import scala.io.Source
 import scala.math.{max, min}
 import scala.collection.JavaConversions._
 
-class SnpCaller(reader: SamRegionReader, refFile: String) {
+import net.sf.samtools.SAMFileReader
+
+class SnpCaller(bamFile: SAMFileReader, refFile: String, refSeq: String, region: Range) {
   // [region.start, region.end) with respect to reference, 1-indexed
 
   // Range of coverages for which to call bases, both in total and per direction.
@@ -17,13 +21,13 @@ class SnpCaller(reader: SamRegionReader, refFile: String) {
   val SECOND_DIRECTIONAL_THRESHOLD = 0.01  // Ditto but per direction
 
   val ref: Array[Byte] = FASTA.read(refFile).pieces(0).data // 0-indexed
-  val region = reader.region
+  //val region = reader.region
   val baseCount = Array.ofDim[Int](2, 4, region.size + 100)
   val coverage = Array.ofDim[Int](2, region.size + 100)
   val snps = new Array[SNP](region.size + 100)
 
   def run() {
-    val reads = reader.reads()
+    val reads = bamFile.queryOverlapping(refSeq, region.start, region.end)
     for (read <- reads) {
       val dir = if (read.getReadNegativeStrandFlag()) 1 else 0
       var posInRef = read.getAlignmentStart()
@@ -137,15 +141,17 @@ object SnpCaller {
       println("We expect an alignments.bam.bai file which is located in the same directory as alignments.bam")
       println("regions.txt should be a text file with tab-delimited reference sequence name, start, and end positions on each line")
     }
-    val regions = Source.fromFile(args(2)).getLines.map( line => {
+    val Array(bamFileName, refFileName, regionsFileName) = args
+    val regions = Source.fromFile(regionsFileName).getLines.map( line => {
       val range = line.split('\t')
       (range(0), range(1).toInt until range(2).toInt)
     })
-    val reader = new SamRegionReader(args(0), "", 1 until 2) // 1-indexed
-    for (region <- regions) {
-      reader.refSeq = region._1
-      reader.region = region._2
-      val snps = new SnpCaller(reader, args(1)).run()
+    val bamFile = new SAMFileReader(new File(bamFileName), new File(bamFileName + ".bai"))
+    bamFile.setValidationStringency(SAMFileReader.ValidationStringency.SILENT)
+    for (seqRegion <- regions) {
+      val refSeq = seqRegion._1
+      val region = seqRegion._2
+      val snps = new SnpCaller(bamFile, refFileName, refSeq, region).run()
     }
   }
 }
