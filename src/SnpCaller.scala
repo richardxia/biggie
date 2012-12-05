@@ -21,7 +21,6 @@ class SnpCaller(bamFile: SAMFileReader, refFile: String, refSeq: String, region:
   val SECOND_DIRECTIONAL_THRESHOLD = 0.01  // Ditto but per direction
 
   val ref: Array[Byte] = FASTA.read(refFile).pieces(0).data // 0-indexed
-  //val region = reader.region
   val baseCount = Array.ofDim[Int](2, 4, region.size + 100)
   val coverage = Array.ofDim[Int](2, region.size + 100)
   val snps = new Array[SNP](region.size + 100)
@@ -40,7 +39,6 @@ class SnpCaller(bamFile: SAMFileReader, refFile: String, refSeq: String, region:
           case 'M' =>
             for (i <- 0 until count) {
               // TODO: Filter based on Phred score
-              //val base = DNA.BASE_TO_CODE(read.sequence.charAt(posInRead))
               val base = DNA.BASE_TO_CODE(read.getReadBases()(posInRead).asInstanceOf[Char])
               if ( region contains posInRef) {
                 val regionPos = posInRef - region.start
