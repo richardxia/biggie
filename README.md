@@ -16,4 +16,10 @@ Running
 -------
 ./bin/biggie cmd args,...
 
-sbt "run-main biggie.SnpCaller samFile rangeStart rangeEnd"
+sbt "run-main biggie.SnpCaller alignment.bam ref.fa regions.txt"
+
+regions.txt:
+refSeq	start	end
+
+e.g.
+chr21	14800232	14804369
