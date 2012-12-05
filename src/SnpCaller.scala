@@ -141,8 +141,8 @@ object SnpCaller {
     }
     val Array(bamFileName, refFileName, regionsFileName) = args
     val regions = Source.fromFile(regionsFileName).getLines.map( line => {
-      val range = line.split('\t')
-      (range(0), range(1).toInt until range(2).toInt)
+      val Array(refSeq, start, end) = line.split('\t')
+      (refSeq, start.toInt until end.toInt)
     })
     val bamFile = new SAMFileReader(new File(bamFileName), new File(bamFileName + ".bai"))
     bamFile.setValidationStringency(SAMFileReader.ValidationStringency.SILENT)
