@@ -4,7 +4,6 @@ import scala.io.Source
 import scala.math.{max, min}
 import scala.collection.JavaConversions._
 
-//class SnpCaller(samFile: String, refFile: String, region: Range = 1 until 2) {
 class SnpCaller(reader: SamRegionReader, refFile: String) {
   // [region.start, region.end) with respect to reference, 1-indexed
 
@@ -18,21 +17,18 @@ class SnpCaller(reader: SamRegionReader, refFile: String) {
   val SECOND_DIRECTIONAL_THRESHOLD = 0.01  // Ditto but per direction
 
   val ref: Array[Byte] = FASTA.read(refFile).pieces(0).data // 0-indexed
-  //val reader = new SamRegionReader(samFile, region) // 1-indexed
   val region = reader.region
   val baseCount = Array.ofDim[Int](2, 4, region.size + 100)
   val coverage = Array.ofDim[Int](2, region.size + 100)
   val snps = new Array[SNP](region.size + 100)
 
   def run() {
-    for (read <- reader.reads()) {
-      //val dir = read.direction
-      //var posInRef = read.position
+    val reads = reader.reads()
+    for (read <- reads) {
       val dir = if (read.getReadNegativeStrandFlag()) 1 else 0
       var posInRef = read.getAlignmentStart()
       var posInRead = 0
       // TODO: stop processing after end of region
-      //for ((count, op) <- read.parseCigar()) {
       for (cigar <- read.getCigar().getCigarElements()) {
         val op = cigar.getOperator().toString()(0)
         val count = cigar.getLength()
@@ -62,6 +58,9 @@ class SnpCaller(reader: SamRegionReader, refFile: String) {
         }
       }
     }
+
+    // Need to close BAMFileIterator before starting next one
+    reads.close()
 
     for (pos <- region) {
       call(pos)
