@@ -179,6 +179,7 @@ class SimpleClassifier(samFile: String, length: Int){
 	var total_count = 0
     while (pos < position) {
 		val totalCoverage = coverage(0)(pos) + coverage(1)(pos)
+		println("pos " + pos + " score " + computeWeirdness(pos))
 		if (computeWeirdness(pos) >= WEIRDNESS_THRESHOLD &&
 		totalCoverage >= MIN_TOTAL_COVERAGE && totalCoverage <= MAX_TOTAL_COVERAGE &&
 		coverage(0)(pos) >= MIN_DIR_COVERAGE && coverage(0)(pos) <= MAX_DIR_COVERAGE &&
@@ -192,7 +193,7 @@ class SimpleClassifier(samFile: String, length: Int){
 			{
 				if( last-left+1 >= MIN_HIGH_COMPLEXITY_REGION_LENGTH )
 				{
-					println("Region:\t"+(left+offset)+"\t--\t"+(last+offset)+"\tLength:\t"+(last-left+1)+"\tDensity:\t"+(counter/(last-left+1.0)))				
+					//println("Region:\t"+(left+offset)+"\t--\t"+(last+offset)+"\tLength:\t"+(last-left+1)+"\tDensity:\t"+(counter/(last-left+1.0)))				
 					total_length += last-left+1
 					covered_count += counter
 				}
@@ -208,13 +209,13 @@ class SimpleClassifier(samFile: String, length: Int){
 
 	if( last-left+1 >= MIN_HIGH_COMPLEXITY_REGION_LENGTH )
 	{
-		println("Region:\t"+(left+offset)+"\t--\t"+(last+offset)+"\tLength:\t"+(last-left+1)+"\tDensity:\t"+(counter/(last-left+1.0)))				
+		//println("Region:\t"+(left+offset)+"\t--\t"+(last+offset)+"\tLength:\t"+(last-left+1)+"\tDensity:\t"+(counter/(last-left+1.0)))				
 		total_length += last-left+1
 	}
 
-    println("Classifying genome sequence of length "+(position-200)+" in ["+(200+offset)+", "+(position+offset)+"]")
-    println("High complexity length = "+total_length)
-	println("Covers "+covered_count+"/"+total_count+" weird bases")
+    //println("Classifying genome sequence of length "+(position-200)+" in ["+(200+offset)+", "+(position+offset)+"]")
+    //println("High complexity length = "+total_length)
+	//println("Covers "+covered_count+"/"+total_count+" weird bases")
   }
 
   // Call the base at the given position
