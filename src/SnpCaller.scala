@@ -12,15 +12,15 @@ class SnpCaller(bamFile: SAMFileReader, ref: Array[Byte], refSeq: String, region
   // [region.start, region.end) with respect to reference, 1-indexed
 
   // Range of coverages for which to call bases, both in total and per direction.
-  val TOTAL_COVERAGE_RANGE = 20 to 100
-  val DIR_COVERAGE_RANGE = 8 to 50
+  val TOTAL_COVERAGE_RANGE = 22 to 100
+  val DIR_COVERAGE_RANGE = 10 to 50
 
   // What fraction of coverage the second-most-common base should have for us to report it;
   // you'd think this should be something like .4, but PCR imbalance messes it up.
   val SECOND_THRESHOLD = 0.2
   val SECOND_DIRECTIONAL_THRESHOLD = 0.01  // Ditto but per direction
 
-  val WEIRDNESS_THRESHOLD = 10
+  val WEIRDNESS_THRESHOLD = 0.1
 
   val baseCount = Array.ofDim[Int](2, 4, region.size + 100)
   val coverage = Array.ofDim[Int](2, region.size + 100)
@@ -41,7 +41,7 @@ class SnpCaller(bamFile: SAMFileReader, ref: Array[Byte], refSeq: String, region
             for (i <- 0 until count) {
               // TODO: Filter based on Phred score
               val base = DNA.BASE_TO_CODE(read.getReadBases()(posInRead).asInstanceOf[Char])
-              if ( region contains posInRef) {
+              if (region contains posInRef) {
                 val regionPos = posInRef - region.start
                 baseCount(dir)(base)(regionPos) += 1
                 coverage(dir)(regionPos) += 1
@@ -56,7 +56,12 @@ class SnpCaller(bamFile: SAMFileReader, ref: Array[Byte], refSeq: String, region
           case 'D' =>
             posInRef += count
 
+          case 'S' =>
+            posInRead += count
+
           case other =>
+            System.err.println("Weird CIGAR: " + other)
+            throw new RuntimeException("Weird CIGAR: " + other)
             //println("Unhandled CIGAR element: " + other)
         }
       }
@@ -173,9 +178,7 @@ object SnpCaller {
     val bamFile = new SAMFileReader(new File(bamFileName), new File(bamFileName + ".bai"))
     bamFile.setValidationStringency(SAMFileReader.ValidationStringency.SILENT)
 
-    for (seqRegion <- regions) {
-      val refSeq = seqRegion._1
-      val region = seqRegion._2
+    for ((refSeq, region) <- regions) {
       val snps = new SnpCaller(bamFile, ref, refSeq, region, weirdness).run()
     }
   }
