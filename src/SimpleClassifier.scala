@@ -56,166 +56,166 @@ class SimpleClassifier(samFile: String, length: Int){
   
   def parseSam()
   {
-	// TODO: Maintain a set of reads at each position and eliminate duplicates
-	val reads = SAM.read(samFile)
-	for (read <- reads) 
-	{
-		if(offset == -1000)
-		{
-			offset = read.position - 200
-		}
-		val readPos = read.position - offset
-		val dir = read.direction
-		if(readPos - 200 > length)
-		{
-			println(readPos+" "+length);
-			return
-		}
+    // TODO: Maintain a set of reads at each position and eliminate duplicates
+    val reads = SAM.read(samFile)
+    for (read <- reads) 
+      {
+      if(offset == -1000)
+        {
+        offset = read.position - 200
+      }
+      val readPos = read.position - offset
+      val dir = read.direction
+      if(readPos - 200 > length)
+        {
+        println(readPos+" "+length);
+        return
+      }
 
-		last_pos = max(last_pos,readPos)
+      last_pos = max(last_pos,readPos)
 
 
-		// Decide whether to shouldIgnore the read (e.g. if it maps to another chromosome)
-		if (shouldIgnoreRead(read)) {
-			  //logDebug("Will not use " + read + " for calling")
-			  if (read.mapQuality < READ_QUALITY_THRESHOLD) {
-				    //logDebug("Using it to increment multiRead count though")
-				    val len = getCoveredLength(read)
-				    var i = 0
-				    while (i < len) {
-					      multiCount(readPos + i) += 1
-					      i += 1
-				    }
-			  }
-		} 
-		else 
-		{
-			  //logDebug("Processing " + read + " @" + read.position + ": " + read.cigar + "\n" + read.sequence)
-			  // Read the CIGAR string and update the base counts with it
-			  var posInRead = 0
-			  var posInRef = readPos
-			  for ((count, op) <- parseCigar(read.cigar)) 
-			  {
-				    op match 
-				    {
-				      case 'S' =>
-					posInRead += count
+      // Decide whether to shouldIgnore the read (e.g. if it maps to another chromosome)
+      if (shouldIgnoreRead(read)) {
+        //logDebug("Will not use " + read + " for calling")
+        if (read.mapQuality < READ_QUALITY_THRESHOLD) {
+          //logDebug("Using it to increment multiRead count though")
+          val len = getCoveredLength(read)
+          var i = 0
+          while (i < len) {
+            multiCount(readPos + i) += 1
+            i += 1
+          }
+        }
+      } 
+      else 
+        {
+        //logDebug("Processing " + read + " @" + read.position + ": " + read.cigar + "\n" + read.sequence)
+        // Read the CIGAR string and update the base counts with it
+        var posInRead = 0
+        var posInRef = readPos
+        for ((count, op) <- parseCigar(read.cigar)) 
+          {
+          op match 
+          {
+            case 'S' =>
+              posInRead += count
 
-				      case '=' =>
-					var i = 0
-					while (i < count) {
-					  val base = BASE_TO_CODE(read.sequence.charAt(posInRead + i))
-					  if (base != 'N') {
-					    baseCount(dir)(base)(posInRef + i) += 1
-					    coverage(dir)(posInRef + i) += 1
-					  }
-					  i += 1
-					}
-					posInRead += count
-					posInRef += count
+            case '=' =>
+              var i = 0
+              while (i < count) {
+                val base = BASE_TO_CODE(read.sequence.charAt(posInRead + i))
+                if (base != 'N') {
+                  baseCount(dir)(base)(posInRef + i) += 1
+                  coverage(dir)(posInRef + i) += 1
+                }
+                i += 1
+              }
+              posInRead += count
+              posInRef += count
 
-				      case 'X' =>
-					var i = 0
-					while (i < count) {
-					  if (Utils.parsePhred(read.quality.charAt(posInRead + i)) >= MIN_PHRED) {
-					    val base = BASE_TO_CODE(read.sequence.charAt(posInRead + i))
-					    if (base != 'N') {
-					      baseCount(dir)(base)(posInRef + i) += 1
-					      coverage(dir)(posInRef + i) += 1
-					      subCount(posInRef + i) += 1
-					    }
-					  }
-					  i += 1
-					}
-					posInRead += count
-					posInRef += count
+            case 'X' =>
+              var i = 0
+              while (i < count) {
+                if (Utils.parsePhred(read.quality.charAt(posInRead + i)) >= MIN_PHRED) {
+                  val base = BASE_TO_CODE(read.sequence.charAt(posInRead + i))
+                  if (base != 'N') {
+                    baseCount(dir)(base)(posInRef + i) += 1
+                    coverage(dir)(posInRef + i) += 1
+                    subCount(posInRef + i) += 1
+                  }
+                }
+                i += 1
+              }
+              posInRead += count
+              posInRef += count
 
-				      case 'M' =>
-					var i = 0
-					while (i < count) {
-					  if (Utils.parsePhred(read.quality.charAt(posInRead + i)) >= MIN_PHRED) {
-					    val base = BASE_TO_CODE(read.sequence.charAt(posInRead + i))
-					    if (base != 'N') {
-					      baseCount(dir)(base)(posInRef + i) += 1
-					      coverage(dir)(posInRef + i) += 1
-					      //***if (read.sequence.charAt(posInRead + i) != ref(posInRef + i)) {
-					      //***subCount(posInRef + i) += 1
-					      //***}
-					    }
-					  }
-					  i += 1
-					}
-					posInRead += count
-					posInRef += count
+            case 'M' =>
+              var i = 0
+              while (i < count) {
+                if (Utils.parsePhred(read.quality.charAt(posInRead + i)) >= MIN_PHRED) {
+                  val base = BASE_TO_CODE(read.sequence.charAt(posInRead + i))
+                  if (base != 'N') {
+                    baseCount(dir)(base)(posInRef + i) += 1
+                    coverage(dir)(posInRef + i) += 1
+                    //***if (read.sequence.charAt(posInRead + i) != ref(posInRef + i)) {
+                      //***subCount(posInRef + i) += 1
+                      //***}
+                    }
+                  }
+                  i += 1
+                }
+                posInRead += count
+                posInRef += count
 
-				      case 'I' =>
-					posInRead += count
-					insCount(posInRef) += count
+              case 'I' =>
+                posInRead += count
+                insCount(posInRef) += count
 
-				      case 'D' =>
-					var i = 0
-					while (i < count) {
-					  delCount(posInRef + i) += 1
-					  i += 1
-					}
-					posInRef += count
+              case 'D' =>
+                var i = 0
+                while (i < count) {
+                  delCount(posInRef + i) += 1
+                  i += 1
+                }
+                posInRef += count
 
-				      case other =>
-					//logError("Unhandled CIGAR element: " + other)
-				    }
-			  }
-		}
-	}
-  }
+              case other =>
+                //logError("Unhandled CIGAR element: " + other)
+            }
+          }
+        }
+      }
+    }
 
   // Call bases up to, but not including, the given position
   def callUpTo(position: Int) {
     var left = -1
     var last = -1
     var pos = 200
-	var counter = 0
+    var counter = 0
     var total_length = 0
-	var covered_count = 0
-	var total_count = 0
+    var covered_count = 0
+    var total_count = 0
     while (pos < position) {
-		val totalCoverage = coverage(0)(pos) + coverage(1)(pos)
-		println("pos " + pos + " score " + computeWeirdness(pos))
-		if (computeWeirdness(pos) >= WEIRDNESS_THRESHOLD &&
-		totalCoverage >= MIN_TOTAL_COVERAGE && totalCoverage <= MAX_TOTAL_COVERAGE &&
-		coverage(0)(pos) >= MIN_DIR_COVERAGE && coverage(0)(pos) <= MAX_DIR_COVERAGE &&
-		coverage(1)(pos) >= MIN_DIR_COVERAGE && coverage(1)(pos) <= MAX_DIR_COVERAGE) 
-		{
-			if(left == -1)
-			{
-				left = pos
-			}
-			else if( (counter+1)/(pos-left+1.0) <  MIN_HIGH_COMPLEXITY_REGION_DENSITY)
-			{
-				if( last-left+1 >= MIN_HIGH_COMPLEXITY_REGION_LENGTH )
-				{
-					//println("Region:\t"+(left+offset)+"\t--\t"+(last+offset)+"\tLength:\t"+(last-left+1)+"\tDensity:\t"+(counter/(last-left+1.0)))				
-					total_length += last-left+1
-					covered_count += counter
-				}
-				counter = 0
-				left = pos
-			}
-			last = pos
-			counter += 1
-			total_count += 1
-		}
-		pos += 1
+      val totalCoverage = coverage(0)(pos) + coverage(1)(pos)
+      //println("pos " + pos + " score " + computeWeirdness(pos))
+      if (computeWeirdness(pos) >= WEIRDNESS_THRESHOLD &&
+        totalCoverage >= MIN_TOTAL_COVERAGE && totalCoverage <= MAX_TOTAL_COVERAGE &&
+        coverage(0)(pos) >= MIN_DIR_COVERAGE && coverage(0)(pos) <= MAX_DIR_COVERAGE &&
+        coverage(1)(pos) >= MIN_DIR_COVERAGE && coverage(1)(pos) <= MAX_DIR_COVERAGE) 
+      {
+        if(left == -1)
+          {
+          left = pos
+        }
+        else if( (counter+1)/(pos-left+1.0) <  MIN_HIGH_COMPLEXITY_REGION_DENSITY)
+          {
+          if( last-left+1 >= MIN_HIGH_COMPLEXITY_REGION_LENGTH )
+            {
+            println("Region:\t"+(left+offset)+"\t--\t"+(last+offset)+"\tLength:\t"+(last-left+1)+"\tDensity:\t"+(counter/(last-left+1.0)))
+            total_length += last-left+1
+            covered_count += counter
+          }
+          counter = 0
+          left = pos
+        }
+        last = pos
+        counter += 1
+        total_count += 1
+      }
+      pos += 1
     }
 
-	if( last-left+1 >= MIN_HIGH_COMPLEXITY_REGION_LENGTH )
-	{
-		//println("Region:\t"+(left+offset)+"\t--\t"+(last+offset)+"\tLength:\t"+(last-left+1)+"\tDensity:\t"+(counter/(last-left+1.0)))				
-		total_length += last-left+1
-	}
+    if( last-left+1 >= MIN_HIGH_COMPLEXITY_REGION_LENGTH )
+      {
+      println("Region:\t"+(left+offset)+"\t--\t"+(last+offset)+"\tLength:\t"+(last-left+1)+"\tDensity:\t"+(counter/(last-left+1.0)))
+      total_length += last-left+1
+    }
 
-    //println("Classifying genome sequence of length "+(position-200)+" in ["+(200+offset)+", "+(position+offset)+"]")
-    //println("High complexity length = "+total_length)
-	//println("Covers "+covered_count+"/"+total_count+" weird bases")
+    println("Classifying genome sequence of length "+(position-200)+" in ["+(200+offset)+", "+(position+offset)+"]")
+    println("High complexity length = "+total_length)
+    println("Covers "+covered_count+"/"+total_count+" weird bases")
   }
 
   // Call the base at the given position

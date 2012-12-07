@@ -8,7 +8,7 @@ import scala.collection.JavaConversions._
 
 import net.sf.samtools.SAMFileReader
 
-class SnpCaller(bamFile: SAMFileReader, refFile: String, refSeq: String, region: Range) {
+class SnpCaller(bamFile: SAMFileReader, ref: Array[Byte], refSeq: String, region: Range, weirdness: Array[Float]) {
   // [region.start, region.end) with respect to reference, 1-indexed
 
   // Range of coverages for which to call bases, both in total and per direction.
@@ -20,7 +20,8 @@ class SnpCaller(bamFile: SAMFileReader, refFile: String, refSeq: String, region:
   val SECOND_THRESHOLD = 0.2
   val SECOND_DIRECTIONAL_THRESHOLD = 0.01  // Ditto but per direction
 
-  val ref: Array[Byte] = FASTA.read(refFile).pieces(0).data // 0-indexed
+  val WEIRDNESS_THRESHOLD = 10
+
   val baseCount = Array.ofDim[Int](2, 4, region.size + 100)
   val coverage = Array.ofDim[Int](2, region.size + 100)
   val snps = new Array[SNP](region.size + 100)
@@ -64,8 +65,15 @@ class SnpCaller(bamFile: SAMFileReader, refFile: String, refSeq: String, region:
     // Need to close BAMFileIterator before starting next one
     reads.close()
 
-    for (pos <- region) {
-      call(pos)
+    if (weirdness != null) {
+      for (pos <- region) {
+        if (weirdness(pos) < WEIRDNESS_THRESHOLD)
+          call(pos)
+      }
+    } else {
+      for (pos <- region) {
+        call(pos)
+      }
     }
     snps
   }
@@ -134,22 +142,41 @@ class SnpCaller(bamFile: SAMFileReader, refFile: String, refSeq: String, region:
 
 object SnpCaller {
   def main(args: Array[String]) {
-    if (args.size != 3) {
-      println("Usage: SnpCaller alignments.bam reference.fa regions.txt")
+    if (args.size != 3 && args.size != 4) {
+      println("Usage: SnpCaller alignments.bam reference.fa regions.txt [weirdness.txt]")
       println("We expect an alignments.bam.bai file which is located in the same directory as alignments.bam")
       println("regions.txt should be a text file with tab-delimited reference sequence name, start, and end positions on each line")
     }
-    val Array(bamFileName, refFileName, regionsFileName) = args
+
+    val bamFileName = args(0)
+    val refFileName = args(1)
+    val regionsFileName = args(2)
+
+    val ref: Array[Byte] = FASTA.read(refFileName).pieces(0).data // 0-indexed
+
+    val t1 = System.currentTimeMillis()
+    val weirdness = if (args.size == 4) {
+      val weirdnessBuf = new Array[Float](ref.size + 100)
+      for (line <- Source.fromFile(args(3)).getLines) {
+        val Array(junk, pos, junk2, score) = line.split(' ')
+        weirdnessBuf(pos.toInt) = score.toFloat
+      }
+      weirdnessBuf
+    } else null
+    val t2 = System.currentTimeMillis()
+    println("Weirdness loading: " + (t2 - t1))
+
     val regions = Source.fromFile(regionsFileName).getLines.map( line => {
       val Array(refSeq, start, end) = line.split('\t')
       (refSeq, start.toInt until end.toInt)
     })
     val bamFile = new SAMFileReader(new File(bamFileName), new File(bamFileName + ".bai"))
     bamFile.setValidationStringency(SAMFileReader.ValidationStringency.SILENT)
+
     for (seqRegion <- regions) {
       val refSeq = seqRegion._1
       val region = seqRegion._2
-      val snps = new SnpCaller(bamFile, refFileName, refSeq, region).run()
+      val snps = new SnpCaller(bamFile, ref, refSeq, region, weirdness).run()
     }
   }
 }
