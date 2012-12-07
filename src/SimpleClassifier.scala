@@ -4,6 +4,10 @@ import scala.io.Source
 import java.util.concurrent.ConcurrentHashMap
 import scala.collection.mutable.ArrayBuffer
 
+import java.io.FileOutputStream
+import java.nio.ByteBuffer
+import java.nio.FloatBuffer
+
 object SimpleClassifier {
   def main(args: Array[String]) {
     println("Loading sam file...")
@@ -45,6 +49,7 @@ class SimpleClassifier(samFile: String, length: Int){
   val coverage = Array.ofDim[Int](2, bufSize)     // (direction, location)
   val baseCount = Array.ofDim[Int](2, 4, bufSize) // (direction, base, location)
   val multiCount = new Array[Int](bufSize)
+  val weirdnessBuf = new Array[Float](bufSize)
   var offset = -1000
   var last_pos = -1
 
@@ -52,6 +57,18 @@ class SimpleClassifier(samFile: String, length: Int){
   {
     parseSam()
     callUpTo(last_pos)
+    //writeSerializedWeirdness()
+  }
+
+  def writeSerializedWeirdness() {
+    val floatBuf = FloatBuffer.wrap(weirdnessBuf)
+    val byteBuf = ByteBuffer.allocate(4 * bufSize)
+    byteBuf.asFloatBuffer.put(floatBuf)
+    //val weirdnesses = ByteBuffer.wrap(weirdness)
+    val fos = new FileOutputStream("weirdness.bin")
+    val channel = fos.getChannel()
+    channel.write(byteBuf)
+    fos.close()
   }
   
   def parseSam()
@@ -175,46 +192,42 @@ class SimpleClassifier(samFile: String, length: Int){
     var total_count = 0
     while (pos < position) {
       val totalCoverage = coverage(0)(pos) + coverage(1)(pos)
-      println("pos " + (pos+offset) + " score " + computeWeirdness(pos))
-      //if (computeWeirdness(pos) >= WEIRDNESS_THRESHOLD &&
-      //  totalCoverage >= MIN_TOTAL_COVERAGE && totalCoverage <= MAX_TOTAL_COVERAGE &&
-      //  coverage(0)(pos) >= MIN_DIR_COVERAGE && coverage(0)(pos) <= MAX_DIR_COVERAGE &&
-      //  coverage(1)(pos) >= MIN_DIR_COVERAGE && coverage(1)(pos) <= MAX_DIR_COVERAGE) 
-      //{
-      //  if(left == -1) {
-      //    left = pos
-      //  }
-      //  else if( (counter+1)/(pos-left+1.0) <  MIN_HIGH_COMPLEXITY_REGION_DENSITY)
-      //  {
-      //    if( last-left+1 >= MIN_HIGH_COMPLEXITY_REGION_LENGTH ) {
-      //      println("Region:\t"+(left+offset)+"\t--\t"+(last+offset)+"\tLength:\t"+(last-left+1)+"\tDensity:\t"+(counter/(last-left+1.0)))
-      //      total_length += last-left+1
-      //      covered_count += counter
-      //    }
-      //    counter = 0
-      //    left = pos
-      //  }
-      //  last = pos
-      //  counter += 1
-      //  total_count += 1
-      //}
+      //println("pos " + (pos+offset) + " score " + computeWeirdness(pos))
+      //weirdnessBuf(pos+offset) = computeWeirdness(pos)
+      if (computeWeirdness(pos) >= WEIRDNESS_THRESHOLD &&
+        totalCoverage >= MIN_TOTAL_COVERAGE && totalCoverage <= MAX_TOTAL_COVERAGE &&
+        coverage(0)(pos) >= MIN_DIR_COVERAGE && coverage(0)(pos) <= MAX_DIR_COVERAGE &&
+        coverage(1)(pos) >= MIN_DIR_COVERAGE && coverage(1)(pos) <= MAX_DIR_COVERAGE) 
+      {
+        if(left == -1) {
+          left = pos
+        }
+        else if( (counter+1)/(pos-left+1.0) <  MIN_HIGH_COMPLEXITY_REGION_DENSITY)
+        {
+          if( last-left+1 >= MIN_HIGH_COMPLEXITY_REGION_LENGTH ) {
+            println("Region:\t"+(left+offset)+"\t--\t"+(last+offset)+"\tLength:\t"+(last-left+1)+"\tDensity:\t"+(counter/(last-left+1.0)))
+            total_length += last-left+1
+            covered_count += counter
+          }
+          counter = 0
+          left = pos
+        }
+        last = pos
+        counter += 1
+        total_count += 1
+      }
       pos += 1
     }
 
-    //if( last-left+1 >= MIN_HIGH_COMPLEXITY_REGION_LENGTH )
-    //  {
-    //  println("Region:\t"+(left+offset)+"\t--\t"+(last+offset)+"\tLength:\t"+(last-left+1)+"\tDensity:\t"+(counter/(last-left+1.0)))
-    //  total_length += last-left+1
-    //}
+    if( last-left+1 >= MIN_HIGH_COMPLEXITY_REGION_LENGTH )
+      {
+      println("Region:\t"+(left+offset)+"\t--\t"+(last+offset)+"\tLength:\t"+(last-left+1)+"\tDensity:\t"+(counter/(last-left+1.0)))
+      total_length += last-left+1
+    }
 
-    //println("Classifying genome sequence of length "+(position-200)+" in ["+(200+offset)+", "+(position+offset)+"]")
-    //println("High complexity length = "+total_length)
-    //println("Covers "+covered_count+"/"+total_count+" weird bases")
-  }
-
-  // Call the base at the given position
-  def call(pos: Int) {
-    
+    println("Classifying genome sequence of length "+(position-200)+" in ["+(200+offset)+", "+(position+offset)+"]")
+    println("High complexity length = "+total_length)
+    println("Covers "+covered_count+"/"+total_count+" weird bases")
   }
 
   def computeWeirdness(pos: Int): Float = {
