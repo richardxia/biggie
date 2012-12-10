@@ -9,7 +9,7 @@ import scala.collection.JavaConversions._
 import net.sf.samtools.SAMFileReader
 
 class SnpCaller(bamFile: SAMFileReader, ref: Array[Byte], refSeq: String, region: Range, weirdness: Array[Float]) {
-  // [region.start, region.end) with respect to reference, 1-indexed
+  // [region.start, region.end] with respect to reference, 1-indexed
 
   // Range of coverages for which to call bases, both in total and per direction.
   val TOTAL_COVERAGE_RANGE = 22 to 100
@@ -29,40 +29,46 @@ class SnpCaller(bamFile: SAMFileReader, ref: Array[Byte], refSeq: String, region
   def run() {
     val reads = bamFile.queryOverlapping(refSeq, region.start, region.end)
     for (read <- reads) {
-      val dir = if (read.getReadNegativeStrandFlag()) 1 else 0
-      var posInRef = read.getAlignmentStart()
-      var posInRead = 0
-      // TODO: stop processing after end of region
-      for (cigar <- read.getCigar().getCigarElements()) {
-        val op = cigar.getOperator().toString()(0)
-        val count = cigar.getLength()
-        op match {
-          case 'M' =>
-            for (i <- 0 until count) {
-              // TODO: Filter based on Phred score
-              val base = DNA.BASE_TO_CODE(read.getReadBases()(posInRead).asInstanceOf[Char])
-              if (region contains posInRef) {
-                val regionPos = posInRef - region.start
-                baseCount(dir)(base)(regionPos) += 1
-                coverage(dir)(regionPos) += 1
+      if (!read.getReadUnmappedFlag()) {
+        val dir = if (read.getReadNegativeStrandFlag()) 1 else 0
+        var posInRef = read.getAlignmentStart()
+        var posInRead = 0
+        //println("read " + read.getReadName() + " " + read.getAlignmentStart())
+        // TODO: stop processing after end of region
+        for (cigar <- read.getCigar().getCigarElements()) {
+          val op = cigar.getOperator().toString()(0)
+          val count = cigar.getLength()
+          //println("CIGAR " + op + " " + count)
+          op match {
+            case 'M' =>
+              for (i <- 0 until count) {
+                // TODO: Filter based on Phred score
+                val base = DNA.BASE_TO_CODE(read.getReadBases()(posInRead).asInstanceOf[Char])
+                if (region contains posInRef) {
+                  val regionPos = posInRef - region.start
+                  //println("baseCount(" + dir + ")(" + base + ")(" + regionPos + ") += 1")
+                  //println("coverage(" + dir + ")(" + regionPos + ") += 1")
+                  baseCount(dir)(base)(regionPos) += 1
+                  coverage(dir)(regionPos) += 1
+                }
+                posInRead += 1
+                posInRef += 1
               }
-              posInRead += 1
-              posInRef += 1
-            }
 
-          case 'I' =>
-            posInRead += count
+            case 'I' =>
+              posInRead += count
 
-          case 'D' =>
-            posInRef += count
+            case 'D' =>
+              posInRef += count
 
-          case 'S' =>
-            posInRead += count
+            case 'S' =>
+              posInRead += count
 
-          case other =>
-            System.err.println("Weird CIGAR: " + other)
-            throw new RuntimeException("Weird CIGAR: " + other)
-            //println("Unhandled CIGAR element: " + other)
+            case other =>
+              System.err.println("Weird CIGAR: " + other)
+              throw new RuntimeException("Weird CIGAR: " + other)
+              //println("Unhandled CIGAR element: " + other)
+          }
         }
       }
     }
@@ -103,6 +109,11 @@ class SnpCaller(bamFile: SAMFileReader, ref: Array[Byte], refSeq: String, region
       }).sortWith(_._2 > _._2)
     val (best, bestFrac) = baseFracs(0)
     val (second, secondFrac) = baseFracs(1)
+
+    //println(pos + " " + totalCoverage)
+    //println(baseCount(0)(0)(regionPos) + " " + baseCount(0)(1)(regionPos) + " " + baseCount(0)(2)(regionPos) + " " + baseCount(0)(3)(regionPos))
+    //println(baseCount(1)(0)(regionPos) + " " + baseCount(1)(1)(regionPos) + " " + baseCount(1)(2)(regionPos) + " " + baseCount(1)(3)(regionPos))
+    //println(DNA.CODE_TO_BASE(best) + ": " + bestFrac + "; " + DNA.CODE_TO_BASE(second) + ": " + secondFrac)
 
     // Just call best for now
     val base1 = if (bestFrac == 0.0) 'N' else DNA.CODE_TO_BASE(best)
@@ -173,7 +184,7 @@ object SnpCaller {
 
     val regions = Source.fromFile(regionsFileName).getLines.map( line => {
       val Array(refSeq, start, end) = line.split('\t')
-      (refSeq, start.toInt until end.toInt)
+      (refSeq, start.toInt to end.toInt)
     })
     val bamFile = new SAMFileReader(new File(bamFileName), new File(bamFileName + ".bai"))
     bamFile.setValidationStringency(SAMFileReader.ValidationStringency.SILENT)
