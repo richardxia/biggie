@@ -1,9 +1,14 @@
+package biggie
+
+import java.io.File
+import net.sf.samtools.SAMFileReader
+
 object Biggie {
   val usage = """Usage: biggie <command> [args, ...]
 
     Commands:
     all <SAM-file>
-    sort <SAM-file>
+    //sort <SAM-file>
     classify <sorted-BAM-file>
     snp <sorted-BAM-file>
   """
@@ -14,7 +19,11 @@ object Biggie {
   }
 
   def runAll(args: Array[String]) {
-    unimplemented()
+    val bamFileName = args(0)
+    val bamFile = new SAMFileReader(new File(bamFileName), new File(bamFileName + ".bai"))
+    val weirdness = new SimpleClassifier(bamFile).run()
+    val regions = 1 until 2
+    new SnpCaller(bamFile, new Array[Byte](0), args(1), regions, weirdness).run()
   }
 
   def runSort(args: Array[String]) {
@@ -45,7 +54,7 @@ object Biggie {
                   else Array[String]()
     cmd match {
       case "all" => runAll(cmdArgs)
-      case "sort" => runSort(cmdArgs)
+      //case "sort" => runSort(cmdArgs)
       case "classify" => runClassify(cmdArgs)
       case "snp" => runSnp(cmdArgs)
       case _ => invalidCommand(cmd)

@@ -12,14 +12,7 @@ import java.nio.FloatBuffer
 import net.sf.samtools.SAMFileReader
 import net.sf.samtools.SAMRecord
 
-object SimpleClassifier {
-  def main(args: Array[String]) {
-    println("Loading bam file...")
-    new SimpleClassifier(args(0),args(1).toInt).run()
-  }
-}
-
-class SimpleClassifier(bamFile: String, length: Int){
+class SimpleClassifier(bamFile: SAMFileReader){
   
   val BASE_TO_CODE = new Array[Byte](128)
   BASE_TO_CODE('A') = 0
@@ -45,7 +38,9 @@ class SimpleClassifier(bamFile: String, length: Int){
   // At what quality do we consider reads confident
   val READ_QUALITY_THRESHOLD = 20
 
-  val bufSize = length + 400
+  val reads = bamFile
+
+  val bufSize = reads.getFileHeader().getSequence(0).getSequenceLength() + 400
 
   val subCount = new Array[Int](bufSize)   // TODO: Could use Shorts here
   val insCount = new Array[Int](bufSize)
@@ -57,11 +52,11 @@ class SimpleClassifier(bamFile: String, length: Int){
   var offset = -1000
   var last_pos = -1
 
-  def run() 
-  {
+  def run(): Array[Float] = {
     parseSam()
     callUpTo(last_pos)
     //writeSerializedWeirdness()
+    weirdnessBuf
   }
 
   def writeSerializedWeirdness() {
@@ -78,17 +73,12 @@ class SimpleClassifier(bamFile: String, length: Int){
   def parseSam()
   {
     // TODO: Maintain a set of reads at each position and eliminate duplicates
-    val reads = new SAMFileReader(new File(bamFile), new File(bamFile + ".bai"))
     for (read <- reads) {
       if(offset == -1000) {
         offset = read.getAlignmentStart() - 200
       }
       val readPos = read.getAlignmentStart() - offset
       val dir = if (read.getReadNegativeStrandFlag()) 1 else 0
-      if(readPos - 200 > length) {
-        println(readPos+" "+length);
-        return
-      }
 
       last_pos = max(last_pos,readPos)
 
@@ -290,4 +280,13 @@ class SimpleClassifier(bamFile: String, length: Int){
   }
 
   def totalBaseCount(base: Int, pos: Int): Int = baseCount(0)(base)(pos) + baseCount(1)(base)(pos)
+}
+
+object SimpleClassifier {
+  def main(args: Array[String]) {
+    println("Loading bam file...")
+    val bamFileName = args(0)
+    val bamFile = new SAMFileReader(new File(bamFileName), new File(bamFileName + ".bai"))
+    new SimpleClassifier(bamFile).run()
+  }
 }
