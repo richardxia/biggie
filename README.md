@@ -7,7 +7,10 @@ Requirements
 ------------
 * Scala
 * sbt
-* Picard library (place sam-<version>.jar in lib/)
+
+Dependencies
+------------
+* Picard library (I think I have the build script to automatically fetch it, but if not, place sam-<version>.jar in lib/)
 
 Compiling
 ---------
