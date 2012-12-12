@@ -1,21 +1,25 @@
-import scala.collection.mutable.ArrayBuffer
+package biggie
+
+import java.io.File
+
+import scala.collection.JavaConversions._
 import scala.math.{max, min}
-import scala.io.Source
-import java.util.concurrent.ConcurrentHashMap
-import scala.collection.mutable.ArrayBuffer
 
 import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import java.nio.FloatBuffer
 
+import net.sf.samtools.SAMFileReader
+import net.sf.samtools.SAMRecord
+
 object SimpleClassifier {
   def main(args: Array[String]) {
-    println("Loading sam file...")
+    println("Loading bam file...")
     new SimpleClassifier(args(0),args(1).toInt).run()
   }
 }
 
-class SimpleClassifier(samFile: String, length: Int){
+class SimpleClassifier(bamFile: String, length: Int){
   
   val BASE_TO_CODE = new Array[Byte](128)
   BASE_TO_CODE('A') = 0
@@ -74,13 +78,13 @@ class SimpleClassifier(samFile: String, length: Int){
   def parseSam()
   {
     // TODO: Maintain a set of reads at each position and eliminate duplicates
-    val reads = SAM.read(samFile)
+    val reads = new SAMFileReader(new File(bamFile), new File(bamFile + ".bai"))
     for (read <- reads) {
       if(offset == -1000) {
-        offset = read.position - 200
+        offset = read.getAlignmentStart() - 200
       }
-      val readPos = read.position - offset
-      val dir = read.direction
+      val readPos = read.getAlignmentStart() - offset
+      val dir = if (read.getReadNegativeStrandFlag()) 1 else 0
       if(readPos - 200 > length) {
         println(readPos+" "+length);
         return
@@ -92,7 +96,7 @@ class SimpleClassifier(samFile: String, length: Int){
       // Decide whether to shouldIgnore the read (e.g. if it maps to another chromosome)
       if (shouldIgnoreRead(read)) {
         //logDebug("Will not use " + read + " for calling")
-        if (read.mapQuality < READ_QUALITY_THRESHOLD) {
+        if (read.getMappingQuality() < READ_QUALITY_THRESHOLD) {
           //logDebug("Using it to increment multiRead count though")
           val len = getCoveredLength(read)
           var i = 0
@@ -108,7 +112,7 @@ class SimpleClassifier(samFile: String, length: Int){
         // Read the CIGAR string and update the base counts with it
         var posInRead = 0
         var posInRef = readPos
-        for ((count, op) <- parseCigar(read.cigar)) {
+        for ((count, op) <- parseCigar(read.getCigarString())) {
           op match 
           {
             case 'S' =>
@@ -117,7 +121,7 @@ class SimpleClassifier(samFile: String, length: Int){
             case '=' =>
               var i = 0
               while (i < count) {
-                val base = BASE_TO_CODE(read.sequence.charAt(posInRead + i))
+                val base = BASE_TO_CODE(read.getReadBases()(posInRead+i).asInstanceOf[Char])
                 if (base != 'N') {
                   baseCount(dir)(base)(posInRef + i) += 1
                   coverage(dir)(posInRef + i) += 1
@@ -130,8 +134,8 @@ class SimpleClassifier(samFile: String, length: Int){
             case 'X' =>
               var i = 0
               while (i < count) {
-                if (Utils.parsePhred(read.quality.charAt(posInRead + i)) >= MIN_PHRED) {
-                  val base = BASE_TO_CODE(read.sequence.charAt(posInRead + i))
+                if (read.getBaseQualities()(posInRead + i) >= MIN_PHRED) {
+                  val base = BASE_TO_CODE(read.getReadBases()(posInRead + i).asInstanceOf[Char])
                   if (base != 'N') {
                     baseCount(dir)(base)(posInRef + i) += 1
                     coverage(dir)(posInRef + i) += 1
@@ -146,8 +150,8 @@ class SimpleClassifier(samFile: String, length: Int){
             case 'M' =>
               var i = 0
               while (i < count) {
-                if (Utils.parsePhred(read.quality.charAt(posInRead + i)) >= MIN_PHRED) {
-                  val base = BASE_TO_CODE(read.sequence.charAt(posInRead + i))
+                if (read.getBaseQualities()(posInRead + i) >= MIN_PHRED) {
+                  val base = BASE_TO_CODE(read.getReadBases()(posInRead + i).asInstanceOf[Char])
                   if (base != 'N') {
                     baseCount(dir)(base)(posInRef + i) += 1
                     coverage(dir)(posInRef + i) += 1
@@ -174,6 +178,7 @@ class SimpleClassifier(samFile: String, length: Int){
                 posInRef += count
 
               case other =>
+                println("Unhandled CIGAR element: " + other)
                 //logError("Unhandled CIGAR element: " + other)
             }
           }
@@ -192,8 +197,7 @@ class SimpleClassifier(samFile: String, length: Int){
     var total_count = 0
     while (pos < position) {
       val totalCoverage = coverage(0)(pos) + coverage(1)(pos)
-      //println("pos " + (pos+offset) + " score " + computeWeirdness(pos))
-      //weirdnessBuf(pos+offset) = computeWeirdness(pos)
+      weirdnessBuf(pos+offset) = computeWeirdness(pos)
       if (computeWeirdness(pos) >= WEIRDNESS_THRESHOLD &&
         totalCoverage >= MIN_TOTAL_COVERAGE && totalCoverage <= MAX_TOTAL_COVERAGE &&
         coverage(0)(pos) >= MIN_DIR_COVERAGE && coverage(0)(pos) <= MAX_DIR_COVERAGE &&
@@ -246,15 +250,15 @@ class SimpleClassifier(samFile: String, length: Int){
     return weirdness / totalCoverage
   }
 
-  def shouldIgnoreRead(read: SAMEntry): Boolean = {
-    if (read.mapQuality < READ_QUALITY_THRESHOLD) {
+  def shouldIgnoreRead(read: SAMRecord): Boolean = {
+    if (read.getMappingQuality() < READ_QUALITY_THRESHOLD) {
       return true
     }
     var amountClipped = 0
-    for ((count, op) <- parseCigar(read.cigar) if op == 'S') {
+    for ((count, op) <- parseCigar(read.getCigarString()) if op == 'S') {
       amountClipped += count
     }
-    if (read.sequence.length - amountClipped < 70) {
+    if (read.getReadLength() - amountClipped < 70) {
       return true
     }
     return false
@@ -281,78 +285,9 @@ class SimpleClassifier(samFile: String, length: Int){
   }
 
   // Get the length of the reference genome that the given read spans
-  def getCoveredLength(read: SAMEntry): Int = {
-    parseCigar(read.cigar).filter(p => "=XMD".contains(p._2)).map(_._1).sum
+  def getCoveredLength(read: SAMRecord): Int = {
+    parseCigar(read.getCigarString()).filter(p => "=XMD".contains(p._2)).map(_._1).sum
   }
 
   def totalBaseCount(base: Int, pos: Int): Int = baseCount(0)(base)(pos) + baseCount(1)(base)(pos)
-}
-
-object Utils {
-  /** Split a string around instances of a given delimiter */
-  def split(s: String, delimiter: Char): Seq[String] = {
-    val buf = new ArrayBuffer[String]
-    var i = 0
-    while (i < s.length) {
-      var j = i
-      while (j < s.length && s.charAt(j) != delimiter) {
-        j += 1
-      }
-      if (j > i) {
-        buf += s.substring(i, j);
-      }
-      i = j
-      while (i < s.length && s.charAt(i) == delimiter) {
-        i += 1
-      }
-    }
-    return buf
-  }
-
-  def parsePhred(score: Char): Int = score - 33
-  def parsePhred(score: Byte): Int = score - 33
-}
-
-class SAMEntry(
-    val readId: String,
-    val flags: Int,
-    val piece: String, 
-    val position: Int,
-    val mapQuality: Int,
-    val cigar: String,
-    val nextPiece: String,
-    val nextPosition: Int,
-    val templateLen: Int,
-    val sequence: String,
-    val quality: String) {
-  override def toString(): String = readId
-
-  def direction = if ((flags & SAM.REVERSE) != 0) 1 else 0
-}
-
-object SAM {
-  def parseEntry(line: String): SAMEntry = {
-    val fields = Utils.split(line, '\t')
-    new SAMEntry(
-      fields(0),                  // read ID
-      fields(1).toInt,            // flags
-      fields(2),                  // piece
-      fields(3).toInt,            // position
-      fields(4).toInt,            // map quality
-      fields(5),                  // cigar
-      fields(6),                  // next piece
-      fields(7).toInt,            // next position
-      if (fields(2) == fields(6)) fields(8).toInt else 0, // template len
-      fields(9),                  // sequence
-      fields(10)                  // quality
-    )
-  }
-
-  def read(file: String): Iterator[SAMEntry] = {
-    val lines = Source.fromFile(file).getLines
-    lines.filter(!_.startsWith("@")).map(parseEntry)
-  }
-
-  // Bits in the flags field
-  val REVERSE = 0x10
 }
