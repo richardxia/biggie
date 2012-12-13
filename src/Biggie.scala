@@ -8,10 +8,10 @@ object Biggie {
   val usage = """Usage: biggie <command> [args, ...]
 
     Commands:
-    all <SAM-file>
+    all <alignment.bam> <reference.fa>
     //sort <SAM-file>
     classify <sorted-BAM-file>
-    snp <sorted-BAM-file>
+    snp <alignment.bam> <reference.fa> <regions.txt>
   """
 
   def unimplemented() {
