@@ -10,6 +10,7 @@ import net.sf.samtools.SAMFileReader
 import net.sf.picard.reference.ReferenceSequence
 import net.sf.picard.reference.ReferenceSequenceFile
 import net.sf.picard.reference.IndexedFastaSequenceFile
+import net.sf.samtools.CigarOperator
 
 class SnpCaller(bamFile: SAMFileReader, ref: ReferenceSequence, refSeq: String, region: Range, weirdness: Array[Float]) {
   // [region.start, region.end] with respect to reference, 1-indexed
@@ -41,11 +42,11 @@ class SnpCaller(bamFile: SAMFileReader, ref: ReferenceSequence, refSeq: String, 
         //println("read " + read.getReadName() + " " + read.getAlignmentStart())
         // TODO: stop processing after end of region
         for (cigar <- read.getCigar().getCigarElements()) {
-          val op = cigar.getOperator().toString()(0)
+          val op = cigar.getOperator()
           val count = cigar.getLength()
           //println("CIGAR " + op + " " + count)
           op match {
-            case 'M' =>
+            case CigarOperator.M =>
               for (i <- 0 until count) {
                 // TODO: Filter based on Phred score
                 val base = DNA.BASE_TO_CODE(read.getReadBases()(posInRead).asInstanceOf[Char])
@@ -60,13 +61,13 @@ class SnpCaller(bamFile: SAMFileReader, ref: ReferenceSequence, refSeq: String, 
                 posInRef += 1
               }
 
-            case 'I' =>
+            case CigarOperator.I =>
               posInRead += count
 
-            case 'D' =>
+            case CigarOperator.D =>
               posInRef += count
 
-            case 'S' =>
+            case CigarOperator.S =>
               posInRead += count
 
             case other =>

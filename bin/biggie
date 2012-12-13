@@ -3,4 +3,8 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Warning: we don't sanitize the input string for possible extra quotes or side effects
-sbt "run $*"
+JAVA_OPTS=${JAVA_OPTS:--Xmx16g}
+SAM_VERSION=1.81
+export JAVA_OPTS
+scala -cp build/biggie.jar:lib/sam-$SAM_VERSION.jar:lib/picard-$SAM_VERSION.jar \
+  biggie.Biggie $*

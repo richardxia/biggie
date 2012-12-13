@@ -15,12 +15,6 @@ import net.sf.samtools.CigarOperator
 
 class SimpleClassifier(bamFile: SAMFileReader){
   
-  val BASE_TO_CODE = new Array[Byte](128)
-  BASE_TO_CODE('A') = 0
-  BASE_TO_CODE('C') = 1
-  BASE_TO_CODE('G') = 2
-  BASE_TO_CODE('T') = 3
-
   val WEIRDNESS_WINDOW = 65       // Should be an odd number so it's balanced around our base.
   val SUB_WEIRDNESS = 3
   val INDEL_WEIRDNESS = 10
@@ -114,7 +108,7 @@ class SimpleClassifier(bamFile: SAMFileReader){
               var i = 0
               while (i < count) {
                 val base = read.getReadBases()(posInRead+i)
-                val baseIndex = BASE_TO_CODE(base)
+                val baseIndex = DNA.BASE_TO_CODE(base)
                 if (base != 'N') {
                   baseCount(dir)(baseIndex)(posInRef + i) += 1
                   coverage(dir)(posInRef + i) += 1
@@ -129,7 +123,7 @@ class SimpleClassifier(bamFile: SAMFileReader){
               while (i < count) {
                 if (read.getBaseQualities()(posInRead + i) >= MIN_PHRED) {
                   val base = read.getReadBases()(posInRead+i)
-                  val baseIndex = BASE_TO_CODE(base)
+                  val baseIndex = DNA.BASE_TO_CODE(base)
                   if (base != 'N') {
                     baseCount(dir)(baseIndex)(posInRef + i) += 1
                     coverage(dir)(posInRef + i) += 1
@@ -146,7 +140,7 @@ class SimpleClassifier(bamFile: SAMFileReader){
               while (i < count) {
                 if (read.getBaseQualities()(posInRead + i) >= MIN_PHRED) {
                   val base = read.getReadBases()(posInRead+i)
-                  val baseIndex = BASE_TO_CODE(base)
+                  val baseIndex = DNA.BASE_TO_CODE(base)
                   if (base != 'N') {
                     baseCount(dir)(baseIndex)(posInRef + i) += 1
                     coverage(dir)(posInRef + i) += 1

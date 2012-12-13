@@ -35,7 +35,7 @@ object Biggie {
   }
 
   def runClassify(args: Array[String]) {
-    unimplemented()
+    SimpleClassifier.main(args)
   }
 
   def runSnp(args: Array[String]) {

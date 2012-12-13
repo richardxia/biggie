@@ -10,24 +10,27 @@ Requirements
 
 Dependencies
 ------------
-* Picard library (I have a separate script which fetches it automatically (`download_picard.sh`), but if not, place sam-<version>.jar and picard-<version>.jar in lib/)
+* Picard library (I have a separate script which fetches it automatically (`download_picard.sh`), but if not, place `sam-<version>.jar` and `picard-<version>.jar` in lib/)
 
 Compiling
 ---------
 In the root directory:
 
-  sbt compile
+    sbt package
+
+This compiles and puts a biggie.jar file in build/. If you just want to compile without packaging, run:
+
+    sbt compile
 
 Running
 -------
-./bin/biggie cmd args,...
+    ./bin/biggie cmd args ...
 
-    sbt "run-main biggie.SimpleClassifier alignment.bam number_of_bases"
-    sbt "run-main biggie.SnpCaller alignment.bam ref.fa regions.txt"
+Commands
 
-running directly:
-
-    JAVA_OPTS=-Xmx16g -cp lib/sam-1.8.1.jar:target/scala-2.9.2/classes biggie.SnpCaller alignment.sam number_of_bases
+* all alignment.bam reference.fa
+* classify sorted-BAM-file
+* snp alignment.bam reference.fa regions.txt
 
 regions.txt:
 refSeq	start	end
