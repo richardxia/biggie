@@ -1,5 +1,5 @@
-cs262a
-======
+BIGGIE: Big Genomics Inference Engine
+=====================================
 
 A pipeline for distributed SNP calling
 
@@ -28,9 +28,9 @@ Running
 
 Commands
 
-* all alignment.bam reference.fa
-* classify sorted-BAM-file
-* snp alignment.bam reference.fa regions.txt
+    all alignment.bam reference.fa
+    classify sorted-BAM-file
+    snp alignment.bam reference.fa regions.txt
 
 regions.txt:
 refSeq	start	end
