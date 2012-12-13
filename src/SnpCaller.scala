@@ -7,8 +7,11 @@ import scala.math.{max, min}
 import scala.collection.JavaConversions._
 
 import net.sf.samtools.SAMFileReader
+import net.sf.picard.reference.ReferenceSequence
+import net.sf.picard.reference.ReferenceSequenceFile
+import net.sf.picard.reference.IndexedFastaSequenceFile
 
-class SnpCaller(bamFile: SAMFileReader, ref: Array[Byte], refSeq: String, region: Range, weirdness: Array[Float]) {
+class SnpCaller(bamFile: SAMFileReader, ref: ReferenceSequence, refSeq: String, region: Range, weirdness: Array[Float]) {
   // [region.start, region.end] with respect to reference, 1-indexed
 
   // Range of coverages for which to call bases, both in total and per direction.
@@ -25,6 +28,8 @@ class SnpCaller(bamFile: SAMFileReader, ref: Array[Byte], refSeq: String, region
   val baseCount = Array.ofDim[Int](2, 4, region.size + 100)
   val coverage = Array.ofDim[Int](2, region.size + 100)
   val snps = new Array[SNP](region.size + 100)
+
+  val refBases = ref.getBases()
 
   def run() {
     val reads = bamFile.queryOverlapping(refSeq, region.start, region.end)
@@ -130,8 +135,9 @@ class SnpCaller(bamFile: SAMFileReader, ref: Array[Byte], refSeq: String, region
 
   private def callOne(pos: Int, base: Char) {
     val regionPos = pos - region.start
-    if (base != ref(pos-1).toChar) {
-      val snp = new SNP(ref(pos-1).toChar, base, base)
+    val refBase: Char = Character.toUpperCase(refBases(pos-1).toChar)
+    if (base != refBase) {
+      val snp = new SNP(refBase, base, base)
       snps(regionPos) = snp
       println("Calling SNP " + snp + " at " + (pos-1))
     } else {
@@ -142,12 +148,13 @@ class SnpCaller(bamFile: SAMFileReader, ref: Array[Byte], refSeq: String, region
   private def callTwo(pos: Int, base1: Char, base2: Char) {
     val regionPos = pos - region.start
     val snp = {
-      if (base1 == ref(pos-1).toChar) {
-        new SNP(ref(pos-1).toChar, base1, base2)
-      } else if (base2 == ref(pos-1)) {
-        new SNP(ref(pos-1).toChar, base2, base1)
+      val refBase: Char = Character.toUpperCase(refBases(pos-1).toChar)
+      if (base1 == refBase) {
+        new SNP(refBase, base1, base2)
+      } else if (base2 == refBase) {
+        new SNP(refBase, base2, base1)
       } else {
-        new SNP(ref(pos-1).toChar, min(base1, base2).toChar, max(base1, base2).toChar)
+        new SNP(refBase, min(base1, base2).toChar, max(base1, base2).toChar)
       }
     }
     snps(regionPos) = snp
@@ -157,8 +164,8 @@ class SnpCaller(bamFile: SAMFileReader, ref: Array[Byte], refSeq: String, region
 }
 
 object SnpCaller {
-  def readRef(refFileName: String): Array[Byte] = {
-    FASTA.read(refFileName).pieces(0).data // 0-indexed
+  def readRef(refFileName: String): ReferenceSequenceFile = {
+    new IndexedFastaSequenceFile(new File(refFileName))
   }
 
   def readWeirdness(weirdnessFileName: String, size: Int) = {
@@ -190,17 +197,18 @@ object SnpCaller {
     val bamFileName = args(0)
     val refFileName = args(1)
     val regionsFileName = args(2)
-    val weirdnessFileName = args(3)
 
     val ref = readRef(refFileName)
-    val weirdness = if (args.size == 4) readWeirdness(weirdnessFileName, ref.size) else null
+    // This doesn't work if you have multiple sequences/chromosomes
+    //val weirdness = if (args.size == 4) readWeirdness(arg(3), ref.size) else null
+    val weirdness = null
     val regions = readRegions(regionsFileName)
 
     val bamFile = new SAMFileReader(new File(bamFileName), new File(bamFileName + ".bai"))
     bamFile.setValidationStringency(SAMFileReader.ValidationStringency.SILENT)
 
     for ((refSeq, region) <- regions) {
-      val snps = new SnpCaller(bamFile, ref, refSeq, region, weirdness).run()
+      val snps = new SnpCaller(bamFile, ref.getSequence(refSeq), refSeq, region, weirdness).run()
     }
   }
 }

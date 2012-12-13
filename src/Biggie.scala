@@ -2,6 +2,7 @@ package biggie
 
 import java.io.File
 import net.sf.samtools.SAMFileReader
+import net.sf.picard.reference.IndexedFastaSequenceFile
 
 object Biggie {
   val usage = """Usage: biggie <command> [args, ...]
@@ -24,9 +25,9 @@ object Biggie {
     val bamFile = new SAMFileReader(new File(bamFileName), new File(bamFileName + ".bai"))
     bamFile.setValidationStringency(SAMFileReader.ValidationStringency.SILENT)
     val weirdness = new SimpleClassifier(bamFile).run()
-    val ref: Array[Byte] = FASTA.read(refFileName).pieces(0).data // 0-indexed
-    val regions = 0 to ref.size
     val refSeq = bamFile.getFileHeader().getSequence(0).getSequenceName()
+    val ref = new IndexedFastaSequenceFile(new File(refFileName)).getSequence(refSeq) // 0-indexed
+    val regions = 0 to ref.length()
     new SnpCaller(bamFile, ref, refSeq, regions, weirdness).run()
   }
 
@@ -38,7 +39,7 @@ object Biggie {
   }
 
   def runSnp(args: Array[String]) {
-    unimplemented()
+    SnpCaller.main(args)
   }
 
   def invalidCommand(arg: String) {
