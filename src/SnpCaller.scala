@@ -157,6 +157,29 @@ class SnpCaller(bamFile: SAMFileReader, ref: Array[Byte], refSeq: String, region
 }
 
 object SnpCaller {
+  def readRef(refFileName: String): Array[Byte] = {
+    FASTA.read(refFileName).pieces(0).data // 0-indexed
+  }
+
+  def readWeirdness(weirdnessFileName: String, size: Int) = {
+    val t1 = System.currentTimeMillis()
+    val weirdness = new Array[Float](size + 100)
+    for (line <- Source.fromFile(weirdnessFileName).getLines) {
+      val Array(junk, pos, junk2, score) = line.split(' ')
+      weirdness(pos.toInt) = score.toFloat
+    }
+    val t2 = System.currentTimeMillis()
+    println("Weirdness loading: " + (t2 - t1))
+    weirdness
+  }
+
+  def readRegions(regionsFileName: String) = {
+    Source.fromFile(regionsFileName).getLines.map( line => {
+      val Array(refSeq, start, end) = line.split('\t')
+      (refSeq, start.toInt to end.toInt)
+    })
+  }
+
   def main(args: Array[String]) {
     if (args.size != 3 && args.size != 4) {
       println("Usage: SnpCaller alignments.bam reference.fa regions.txt [weirdness.txt]")
@@ -167,25 +190,12 @@ object SnpCaller {
     val bamFileName = args(0)
     val refFileName = args(1)
     val regionsFileName = args(2)
+    val weirdnessFileName = args(3)
 
-    val ref: Array[Byte] = FASTA.read(refFileName).pieces(0).data // 0-indexed
+    val ref = readRef(refFileName)
+    val weirdness = if (args.size == 4) readWeirdness(weirdnessFileName, ref.size) else null
+    val regions = readRegions(regionsFileName)
 
-    val t1 = System.currentTimeMillis()
-    val weirdness = if (args.size == 4) {
-      val weirdnessBuf = new Array[Float](ref.size + 100)
-      for (line <- Source.fromFile(args(3)).getLines) {
-        val Array(junk, pos, junk2, score) = line.split(' ')
-        weirdnessBuf(pos.toInt) = score.toFloat
-      }
-      weirdnessBuf
-    } else null
-    val t2 = System.currentTimeMillis()
-    println("Weirdness loading: " + (t2 - t1))
-
-    val regions = Source.fromFile(regionsFileName).getLines.map( line => {
-      val Array(refSeq, start, end) = line.split('\t')
-      (refSeq, start.toInt to end.toInt)
-    })
     val bamFile = new SAMFileReader(new File(bamFileName), new File(bamFileName + ".bai"))
     bamFile.setValidationStringency(SAMFileReader.ValidationStringency.SILENT)
 

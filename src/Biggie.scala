@@ -20,10 +20,14 @@ object Biggie {
 
   def runAll(args: Array[String]) {
     val bamFileName = args(0)
+    val refFileName = args(1)
     val bamFile = new SAMFileReader(new File(bamFileName), new File(bamFileName + ".bai"))
+    bamFile.setValidationStringency(SAMFileReader.ValidationStringency.SILENT)
     val weirdness = new SimpleClassifier(bamFile).run()
-    val regions = 1 until 2
-    new SnpCaller(bamFile, new Array[Byte](0), args(1), regions, weirdness).run()
+    val ref: Array[Byte] = FASTA.read(refFileName).pieces(0).data // 0-indexed
+    val regions = 0 to ref.size
+    val refSeq = bamFile.getFileHeader().getSequence(0).getSequenceName()
+    new SnpCaller(bamFile, ref, refSeq, regions, weirdness).run()
   }
 
   def runSort(args: Array[String]) {
