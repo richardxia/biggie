@@ -10,7 +10,7 @@ Requirements
 
 Dependencies
 ------------
-* Picard library (I think I have the build script to automatically fetch it, but if not, place sam-<version>.jar in lib/)
+* Picard library (I have a separate script which fetches it automatically (`download_picard.sh`), but if not, place sam-<version>.jar and picard-<version>.jar in lib/)
 
 Compiling
 ---------
