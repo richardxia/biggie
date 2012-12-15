@@ -307,7 +307,10 @@ Lastly, skewed coverage---when more reads of one direction align to the referenc
 \subsection{Region Compexity Classification}
 %-----------------------------------
 
-We then use the complexity scores at each base to define high-complexity regions. We build up high-complexity regions in a greedy fashion, adding bases while maintaining that the overall high-complexity base density remains above a threshold $t_r$. We filter out high-complexity regions that are less than 500 bases long. We also investigate the effects of chaning $t_r$.
+We then use the complexity scores at each base to define high-complexity regions, which are ranges of bases that may contain both high and low complexity bases.
+We build up high-complexity regions in a greedy fashion, adding bases while maintaining that the overall high-complexity base density remains above a threshold $t_r$.
+After generating the set of high-complexity regions in this manner, we filter out high-complexity regions that are less than 500 bases long.
+We also investigate the effects of changing $t_r$, since increasing $t_r$ may increase the number of truly high-complexity variants which we are unable to call with a simple SNP caller, while decreasing $t_r$ may lower the number of high-complexity regions and improve load balancing.
 \TODO{provide more details?}
 
 %-------------------
@@ -315,23 +318,10 @@ We then use the complexity scores at each base to define high-complexity regions
 %-------------------
 
 \TODO{more details of SNP calling?}
-We employ SNP calling on both the low-complexity bases and the low-complexity regions. In
-our prototype we implemented a simple consensus-based approach, which roughly
-builds on the intuition that if a SNP exists, then the majority of the reads
-which cover that position should agree on a common nucleotide which is
-different from the reference.\footnote{More specifically, we use the standard
-80-20 approach \cite{gatk} to deal with diploid genomes and differentiate
-between homozygous and heterozygous SNPs.}
-%, with the future goals of
-%distributing the computation across a cluster and eventually implementing more
-%complex analyses later on.  
-%that counts the number of matches/mismatches in each of the reads which
-%align to a particular base and call SNPs based on certain thresholds.  
-This algorithm is embarrassingly data-parallel and requires no interprocess
-communication, and may be trivially parallelized over a cluster.  
-%We expect to achieve even
-%better accuracy when implementing a more complex algorithm to call variants in
-%the high-complexity regions.
+We employ SNP calling on both the low-complexity bases and the low-complexity regions, leaving the task of calling SNPs and structural variants on high-complexity bases and regions for future work.
+For these low-complexity bases, our goal is speed and accuracy, which are easier to attain since we are skipping any region we deem complex.
+We implemented a simple consensus-based SNP caller, which roughly builds on the intuition that if a SNP exists, then the majority of the reads which cover that position should agree on a common nucleotide which is different from the reference.\footnote{More specifically, we use the standard 80-20 approach \cite{gatk} to deal with diploid genomes and differentiate between homozygous and heterozygous SNPs.}
+This algorithm is embarrassingly data-parallel and requires no interprocess communication, and may be trivially parallelized over a cluster, with the only requirement being that the reads need to be distributed once at the beginning.
 
 %\begin{table}
 %\small
@@ -364,6 +354,7 @@ communication, and may be trivially parallelized over a cluster.
 %	\caption{Results of SNP calling on Yoruban trio data from Chromosome 20.}
 %	\label{SNP-real}
 %\end{table}
+
 There are several techniques used for SNP calling,
 %. which range from a na\"{i}ve
 %consensus-based approach to more complex modeling approaches.  In addition, by
@@ -429,7 +420,7 @@ area.
 \section{Implementation}
 %-------------------
 
-We implemented Biggie in Scala in about 1000 lines of code, making use of the Picard Java API for reading and manipulating BAM and FASTA files.
+We implemented Biggie in Scala in about 1000 lines of code, making use of the Picard Java API\TODO{citation} for reading and manipulating BAM and FASTA files.
 
 
 %---------------
