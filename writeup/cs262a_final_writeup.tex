@@ -420,8 +420,9 @@ area.
 \section{Implementation}
 %-------------------
 
-We implemented Biggie in Scala in about 1000 lines of code, making use of the Picard Java API\TODO{citation} for reading and manipulating BAM and FASTA files.
-
+We implemented Biggie in Scala in about 1000 lines of code, making use of the Picard Java API (\TODO{citation}) for reading and manipulating BAM and FASTA files.
+We structured Biggie as a pipeline consisting of the classifier and the SNP caller, with the option to run them together or separately.
+When choosing to run both stages together, the FASTA files and the BAM files are kept in memory as well as the weirdness scores, allowing the SNP caller to immediately begin running after the classifier.
 
 %---------------
 \section{Evaluation}
