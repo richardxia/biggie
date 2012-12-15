@@ -12,23 +12,26 @@ import java.nio.FloatBuffer
 import net.sf.samtools.SAMFileReader
 import net.sf.samtools.SAMRecord
 import net.sf.samtools.CigarOperator
+import net.sf.picard.reference.IndexedFastaSequenceFile
+import net.sf.picard.reference.ReferenceSequence
 
-class SimpleClassifier(bamFile: SAMFileReader){
-  
+class SimpleClassifier(bamFile: SAMFileReader, ref: ReferenceSequence){
+  val OVERCOVER_WEIRDNESS = 0.1f
+  val UNDERCOVER_WEIRDNESS = 0.1f
+  val UNBALANCED_COVER_WEIRDNESS = 0.1f
   val WEIRDNESS_WINDOW = 65       // Should be an odd number so it's balanced around our base.
   val SUB_WEIRDNESS = 3
   val INDEL_WEIRDNESS = 10
   val MULTI_WEIRDNESS = 3         // From a multiple-hits read mapping to a given place.
   val WEIRDNESS_THRESHOLD = 0.1
   val MIN_PHRED = 30              // Ignore bases mapped with score lower than this.
-  val MIN_HIGH_COMPLEXITY_REGION_LENGTH = 1000
+  val MIN_HIGH_COMPLEXITY_REGION_LENGTH = 500
   val MIN_HIGH_COMPLEXITY_REGION_DENSITY = 0.15
 
   // Range of coverages for which to call bases, both in total and per direction.
-  val MIN_TOTAL_COVERAGE = 22
-  val MAX_TOTAL_COVERAGE = 10000
-  val MIN_DIR_COVERAGE = 10
-  val MAX_DIR_COVERAGE = 5000
+  val MIN_TOTAL_COVERAGE = 20
+  val MAX_TOTAL_COVERAGE = 200 
+  val MAX_COVERAGE_DIFFERENCE = 150
 
   // At what quality do we consider reads confident
   val READ_QUALITY_THRESHOLD = 20
@@ -42,7 +45,7 @@ class SimpleClassifier(bamFile: SAMFileReader){
   val baseCount = Array.ofDim[Int](2, 4, bufSize) // (direction, base, location)
   val multiCount = new Array[Int](bufSize)
   val weirdnessBuf = new Array[Float](bufSize)
-  var offset = -1000
+  //var offset = -1000
   var last_pos = -1
 
   def run(): Array[Float] = {
@@ -65,15 +68,14 @@ class SimpleClassifier(bamFile: SAMFileReader){
   
   def parseSam()
   {
+    var t_total = 0
+    var t_mismatch = 0
+
     // TODO: Maintain a set of reads at each position and eliminate duplicates
     val reads = bamFile.iterator()
     for (read <- reads) {
-      if(offset == -1000) {
-        offset = read.getAlignmentStart() - 200
-      }
-      val readPos = read.getAlignmentStart() - offset
+      val readPos = read.getAlignmentStart() - 1
       val dir = if (read.getReadNegativeStrandFlag()) 1 else 0
-
       last_pos = max(last_pos,readPos)
 
 
@@ -137,20 +139,32 @@ class SimpleClassifier(bamFile: SAMFileReader){
 
             case CigarOperator.M =>
               var i = 0
-              while (i < count) {
-                if (read.getBaseQualities()(posInRead + i) >= MIN_PHRED) {
-                  val base = read.getReadBases()(posInRead+i)
-                  val baseIndex = DNA.BASE_TO_CODE(base)
-                  if (base != 'N') {
-                    baseCount(dir)(baseIndex)(posInRef + i) += 1
-                    coverage(dir)(posInRef + i) += 1
-                    //***if (read.sequence.charAt(posInRead + i) != ref(posInRef + i)) {
-                      //***subCount(posInRef + i) += 1
-                      //***}
-                    }
-                  }
-                  i += 1
+	      //var read_seq = ""
+              //var ref_seq = ""
+              while (i < count) 
+	      {
+			if (read.getBaseQualities()(posInRead + i) >= MIN_PHRED)
+			{
+				  val base = read.getReadBases()(posInRead+i)
+				  val baseIndex = DNA.BASE_TO_CODE(base)
+				  if (base != 'N')
+				  {
+					    baseCount(dir)(baseIndex)(posInRef + i) += 1
+					    coverage(dir)(posInRef + i) += 1
+					    //read_seq += read.getReadBases()(posInRead + i).toChar
+					    //ref_seq += ref.getBases()(posInRef + i).toChar
+					    t_total += 1
+					    val char_read = read.getReadBases()(posInRead+i)
+					    val char_ref = ref.getBases()(posInRef + i)
+					    if (!(char_read == char_ref || char_read == char_ref + 32 || char_read == char_ref - 32)) {
+					    	subCount(posInRef + i) += 1
+						t_mismatch += 1
+					    }
+				  }
+		          }
+			  i += 1
                 }
+		//println(ref_seq+"|....|"+read_seq)
                 posInRead += count
                 posInRef += count
 
@@ -173,6 +187,7 @@ class SimpleClassifier(bamFile: SAMFileReader){
         }
       }
     }
+    //println(t_mismatch+"/"+t_total+" substitutions")
     reads.close()
   }
 
@@ -187,12 +202,10 @@ class SimpleClassifier(bamFile: SAMFileReader){
     var total_count = 0
     while (pos < position) {
       val totalCoverage = coverage(0)(pos) + coverage(1)(pos)
-      //println("pos " + (pos+offset) + " score " + computeWeirdness(pos))
-      weirdnessBuf(pos+offset) = computeWeirdness(pos)
-      if (computeWeirdness(pos) >= WEIRDNESS_THRESHOLD &&
-        totalCoverage >= MIN_TOTAL_COVERAGE && totalCoverage <= MAX_TOTAL_COVERAGE &&
-        coverage(0)(pos) >= MIN_DIR_COVERAGE && coverage(0)(pos) <= MAX_DIR_COVERAGE &&
-        coverage(1)(pos) >= MIN_DIR_COVERAGE && coverage(1)(pos) <= MAX_DIR_COVERAGE) 
+      val weirdness = computeWeirdness(pos)
+      //println("pos " + (pos) + " score " + weirdness)
+      weirdnessBuf(pos) = weirdness
+      if (weirdness > WEIRDNESS_THRESHOLD) 
       {
         if(left == -1) {
           left = pos
@@ -200,7 +213,7 @@ class SimpleClassifier(bamFile: SAMFileReader){
         else if( (counter+1)/(pos-left+1.0) <  MIN_HIGH_COMPLEXITY_REGION_DENSITY)
         {
           if( last-left+1 >= MIN_HIGH_COMPLEXITY_REGION_LENGTH ) {
-            println("Region:\t"+(left+offset)+"\t--\t"+(last+offset)+"\tLength:\t"+(last-left+1)+"\tDensity:\t"+(counter/(last-left+1.0)))
+            println("Region:\t"+(left)+"\t--\t"+(last)+"\tLength:\t"+(last-left+1)+"\tDensity:\t"+(counter/(last-left+1.0)))
             total_length += last-left+1
             covered_count += counter
           }
@@ -216,11 +229,11 @@ class SimpleClassifier(bamFile: SAMFileReader){
 
     if( last-left+1 >= MIN_HIGH_COMPLEXITY_REGION_LENGTH )
       {
-      println("Region:\t"+(left+offset)+"\t--\t"+(last+offset)+"\tLength:\t"+(last-left+1)+"\tDensity:\t"+(counter/(last-left+1.0)))
+      println("Region:\t"+(left)+"\t--\t"+(last)+"\tLength:\t"+(last-left+1)+"\tDensity:\t"+(counter/(last-left+1.0)))
       total_length += last-left+1
     }
 
-    println("Classifying genome sequence of length "+(position-200)+" in ["+(200+offset)+", "+(position+offset)+"]")
+    println("Classifying genome sequence of length "+(position-200)+" in ["+(200)+", "+(position)+"]")
     println("High complexity length = "+total_length)
     println("Covers "+covered_count+"/"+total_count+" weird bases")
   }
@@ -236,6 +249,20 @@ class SimpleClassifier(bamFile: SAMFileReader){
       weirdness += INDEL_WEIRDNESS * (insCount(i) + delCount(i))
       weirdness += MULTI_WEIRDNESS * multiCount(i)
       totalCoverage += coverage(0)(i) + coverage(1)(i)
+      val bicov = coverage(0)(i) + coverage(1)(i)
+      
+      if(bicov > MAX_TOTAL_COVERAGE){
+	weirdness += OVERCOVER_WEIRDNESS * bicov
+      }
+
+      if(bicov < MIN_TOTAL_COVERAGE){
+	weirdness += UNDERCOVER_WEIRDNESS * bicov
+      }
+
+      if( coverage(0)(pos)-coverage(1)(pos) > MAX_COVERAGE_DIFFERENCE || coverage(1)(pos) - coverage(0)(pos) > MAX_COVERAGE_DIFFERENCE){
+	weirdness += UNBALANCED_COVER_WEIRDNESS * bicov
+      }
+
       i += 1
     }
     return weirdness / totalCoverage
@@ -262,8 +289,13 @@ object SimpleClassifier {
   def main(args: Array[String]) {
     println("Loading bam file...")
     val bamFileName = args(0)
+    val refFileName = args(1)
+
     val bamFile = new SAMFileReader(new File(bamFileName), new File(bamFileName + ".bai"))
     bamFile.setValidationStringency(SAMFileReader.ValidationStringency.SILENT)
-    new SimpleClassifier(bamFile).run()
+    val refSeq = bamFile.getFileHeader().getSequence(0).getSequenceName()
+    val ref = new IndexedFastaSequenceFile(new File(refFileName)).getSequence(refSeq) // 0-indexed
+
+    new SimpleClassifier(bamFile, ref).run()
   }
 }

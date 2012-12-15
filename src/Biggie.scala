@@ -10,7 +10,7 @@ object Biggie {
     Commands:
     all <alignment.bam> <reference.fa>
     //sort <SAM-file>
-    classify <sorted-BAM-file>
+    classify <sorted-BAM-file> <reference.fa>
     snp <alignment.bam> <reference.fa> <regions.txt>
   """
 
@@ -24,15 +24,17 @@ object Biggie {
     val refFileName = args(1)
     val bamFile = new SAMFileReader(new File(bamFileName), new File(bamFileName + ".bai"))
     bamFile.setValidationStringency(SAMFileReader.ValidationStringency.SILENT)
-    val weirdness = new SimpleClassifier(bamFile).run()
+    
     val refSeq = bamFile.getFileHeader().getSequence(0).getSequenceName()
     val ref = new IndexedFastaSequenceFile(new File(refFileName)).getSequence(refSeq) // 0-indexed
     val regions = 0 to ref.length()
+
+    val weirdness = new SimpleClassifier(bamFile,ref).run()
     new SnpCaller(bamFile, ref, refSeq, regions, weirdness).run()
   }
 
   def runSort(args: Array[String]) {
-  }
+  } 
 
   def runClassify(args: Array[String]) {
     SimpleClassifier.main(args)
