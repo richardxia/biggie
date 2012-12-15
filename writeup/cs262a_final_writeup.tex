@@ -1,4 +1,4 @@
-\documentclass[12pt]{article}
+\documentclass[10pt]{article}
 \usepackage{nips12submit_e,times}
 \usepackage{pslatex}
 \usepackage{xcolor}
@@ -42,7 +42,10 @@ accordingly.
 
 \twocolumn
 
+%-----------------
 \section{Introduction}
+%-----------------
+
 Next-generation sequencing is revolutionizing biological and clinical research
 \cite{schuster}.  Indeed, sequencing advances will soon allow sequencing a
 human genome for under \$1000. Long hampered by the difficulty and
@@ -91,7 +94,10 @@ This paper explores both of these benefits by showing that simple, fast algorith
 can be effective on a substantial percentage of the genome, and describes how we have 
 incorporated them into BIGGIE.
 
+%----------------
 \section{Background}
+%----------------
+
 DNA sequencing machines analyze cell samples and output data in the form of
 \emph{reads}, which are short sequences of DNA.  Variant calling pipelines aim
 to convert these raw, noisy short reads into a set of variants that describe
@@ -183,8 +189,9 @@ alignment data and subsequently allocate resources accordingly.
 %The output of this alignment step describes the best alignment position of a read as well as a quantitative alignment error score.
 %Sequencing errors in different reads should in theory be independent, although separating errors from SNPs can be challenging in areas of low sequencing coverage (i.e. few aligned reads overlap a given base in the reference).
 
-%\section{Overview}
+%--------------
 \section{Methods}
+%--------------
 
 The following subsections describe the various steps in BIGGIE, explaining what we have implemented and what remains as future work.
 %as well as how we plan to build them for an efficient distributed system.  
@@ -218,8 +225,18 @@ aligned set of reads for each genome to be processed, in the form of a BAM file
 %We plan to implement this as a classic merge sort over a cluster.
 
 %\subsection{Alignment Classification}
+
+%----------------------
+\subsection{Read Alignment}
+%----------------------
+
+The raw reads have been produced by the sequencing platform, the first step in genome analysis is almost always read alignment. This involves mapping the reads to a reference genome, which is often a very computationally challenging problem. BWA \cite{bwa} is a commonly-used short read aligner based on the Burrows-Wheeler transform. SNAP \cite{snap}, is a much faster aligner (developed at Berkeley). Some variant callers have a local realignment step, which is slow but can produce more accurate results. An accurate alignment is key for downstream analysis.
+
+%-------------------------------------
 \subsection{Per Base Complexity Classification}
 \label{sec:classification}
+%-------------------------------------
+
 We first classify each base as either 
 %We classify the regions of the alignment as either 
 ``high complexity'' or 
@@ -295,13 +312,16 @@ Scoring was normalized by the number of aligned reads, and then bases with a sco
 
 %\TODO{Give estimates on how many high complexity regions there are}
 
+%-----------------------------------
 \subsection{Region Compexity Classification}
+%-----------------------------------
 
 We then use the complexity scores at each base to define high-complexity regions. We build up high-complexity regions in a greedy fashion, adding bases while maintaining that the overall high-complexity base density remains above a threshold $t_r$. We filter out high-complexity regions that are less than 500 bases long. We also investigate the effects of chaning $t_r$.
 \TODO{provide more details?}
 
+%-------------------
 \subsection{SNP Calling}
-\vspace{-6pt}
+%-------------------
 
 \TODO{more details of SNP calling?}
 We employ SNP calling on both the low-complexity bases and the low-complexity regions. In
@@ -380,9 +400,9 @@ patterns of common SNP callers.
 %algorithmic choices, which will allow her try more ideas and parameters than in
 %existing pipelines.
 
-\vspace{-7pt}
+%------------------------------
 \subsection{Structural Variant Calling}
-\vspace{-6pt}
+%------------------------------
 
 After processing the low-complexity regions, we are subsequently left with a set
 of disjoint high-complexity regions, and we can process 
@@ -414,9 +434,15 @@ area.
 %We also will want to explore the state space of different parameters that we can configure with our pipeline.
 %Several of these parameters will include different partitioning schemes, heuristics for determining high- and low-complexity regions, and memory limitations and number of cores.
 
-%-------------
-\section{Results}
-%-------------
+%-------------------
+\section{Implementation}
+%-------------------
+
+\TODO{fill in}
+
+%---------------
+\section{Evaluation}
+%---------------
 
 To test the efficacy of our classifier, we used
 %real data (Yoruban trio data from the 1000 genomes project \cite{1000genomes}) and 
@@ -424,7 +450,14 @@ simulated data from human Chromosome 20. \TODO{cite tvsim} The simulated data co
 %taken from dbSNP randomly
 inserted into the reference for Chromosome 20, which is $63$M bases in length,
 of which 94.4\% are known (not Ns).
-%Artificial reads were then generated from this simulated genome using simNGS \cite{simNGS}.  
+%Artificial reads were then generated from this simulated genome using simNGS \cite{simNGS}.
+We compared BIGGIE to two other variant callers, SAMtools mpileup and GATK (see Section~\ref{sec:relatedWork} for a discussion of these two methods). SAMtools mpileup was run using the best-practices suggestions, with one pass for generating a raw vcf (common variant format) file and one pass for filtering based on quality metrics. GATK was also run using the best-practices suggestions, with one raw vcf pass, a pass for annotating variants (requires training data), and a pass for filtering based on the the annotation step. When running BIGGIE, we evaluated the false negatives only on the low complexity regions, not the high complexity regions where we did not attempt to call variation.
+
+To compare the methods, we only considered SNPs, not more complex structural variation.
+
+%-------------
+\section{Results}
+%-------------
 
 For the simulated data, 16.6\% of the genome was in a region of high complexity, for $t_r =0.05$. 
 %2.2\% of the non-N bases had a
@@ -463,27 +496,38 @@ complexity regions, we ran our simple SNP caller only on low-complexity regions.
 	\end{figure}
 
 
-\vspace{-6pt}
+%-----------------
 \section{Related Work}
-\vspace{-8pt}
-There are several existing SNP (and other variant) callers such at SAMtools
-mpileup \cite{samtools}, GATK \cite{gatk}, and Platypus \cite{platypus}. SAMtools mpileup uses the concept of a Base Alignment Quality (BAQ) to detect the differences between SNPs and small indels.
-SAMtools is being replaced by GATK as the industry standard.  GATK has not released the algorithmic details for their current implementation, but part of their pipeline is a training step that requires outside data to be analyzed.  This process, in combination with user-defined learning parameters, makes GATK very difficult to use and understand. Although
+\label{sec:relatedWork}
+%-----------------
+
+There are several existing variant callers, such at CASAVA \cite{casava}, SAMtools mpileup \cite{samtools}, GATK \cite{gatk}, and Platypus \cite{platypus}. Each one has unique algorithmic innovations, but there are a core set of steps that are commonly used. CASAVA is Illumina's variant caller, and is not free, so we do not compare against it.
+
+SAMtools mpileup uses a set of alignment filters that attempt to distinguish artifacts from true variation. They also use the concept of a Base Alignment Quality (BAQ), which is the probability that a read base is misaligned. Filtering on BAQ scores helps them elliminate false positive SNPs that are truly small indels. Some drawbacks of mpileup are its slow runtime and somewhat less sophisticated filtering.
+
+%SAMtools is being replaced by GATK as the industry standard.
+
+GATK (Genome Analysis Toolkit) has extensive funtionality beyond variant calling, but has not released the algorithmic details for their current implementation. On a high level, their variant calling algorithm makes a first pass, identifying areas that might be SNPs, indels, or structural variation. Then a second pass requires the user to specify a set of parameters (such as mapping quality, coverage, etc) and a set of outside training data (where the truth is known), so that the algorithm can learn which variants are true and which are noise. The filtered variants are then output. The combination of outside training data and many user-defined parameters makes GATK very difficult to use and understand. Although
 GATK does have the ability to perform in a distributed environment, this
 functionality is not straightforward for the typical user, and usually GATK
 ends up being very slow.  Although GATK provides more functionality than simple
 SNP calling, and can be tuned to produce good results, our system is much faster and more
 lightweight than GATK.
+
 Most variant callers consider each candidate SNP independently, but the caller
 Platypus aggregates information within a window of the genome to take into
 account local information. In addition, there are many programs to call more
 complex structural variation, although the field is less developed than SNP
-calling.  BIGGIE will ideally set us up to efficiently tackle this
-problem later on.
+calling.  BIGGIE will ideally set us up to efficiently compare structural variant callers later on.
 
-\section{Conclusion}
+%-----------------------------
+\section{Discussion and Future Work}
+%-----------------------------
 
-\TODO{write}
+In this project we have demonstrated that we can efficiently identify a simple type of genetic variation (SNPs) by taking advantage of the fact that, for a given individual, some areas will be very complicated, while some will match the reference in straightforward ways. Distinguishing this difference (and hopefully at a finer granularity later on) helps us use our resources well -- simpler algorithms can be used in regions of low complexity, while more sophisticated algorithms can be used in areas of high complexity. Using a simple SNP caller in regions of low complexity (either per base or by region), we obtain good variant calls, with a very low number of false positives, which was our goal. 
+\TODO{discuss false negatives when we know more}
+
+There are many interesting areas of future work, and we plan for implementation to continue on BIGGIE. The main areas include scaling up to the entire genome and taking appropriate memory and distribution decisions as difficulties arise, as well as better definitions for what makes a base or a region highly complex. Finally, we would like to make BIGGIE an environment where structural variant callers can be run and compared without reloading data into memory.  Having an end-to-end pipeline will help us learn how mistakes early on can lead to downstream errors, so we can make corrections efficiently. 
 
 %\end{multicols}
 \onecolumn
@@ -492,7 +536,7 @@ problem later on.
 \newpage
 \begin{thebibliography}{1}
 
-\bibitem{telescoper} Ma'ayan Bresler M., Sheehan S., Chan A., and Song, Y., ``Telescoper: {\it de novo} assembly of highly repetitive regions.'' {\em Bioinformatics} (2012), 28: 311-317.
+\bibitem{telescoper} Bresler M., Sheehan S., Chan A., and Song, Y., ``Telescoper: {\it de novo} assembly of highly repetitive regions.'' {\em Bioinformatics} (2012), 28: 311-317.
 
 \bibitem{bamtools} Barnett D., Garrison E., Quinlan A., Str\"{o}mber M., and Marth G., ``BamTools: a C++ API and toolkit for analyzing and managing BAM files.'' {\em Bioinformatics} (2011), 27: 1691-1692.
 
@@ -501,6 +545,8 @@ problem later on.
 \bibitem{haussler} Haussler D. Keynote Address: The UCSC Cancer Genomics Hub. (2012) https://www.usenix.org/conference/osdi12/keynote-address.
 
 \bibitem{samtools} Li H., Handsaker B., Wysoker A., Fennell T., Ruan J., Homer N., Marth G., Abecasis G., Durbin R. and 1000 Genome Project Data Processing Subgroup, ``The Sequence alignment/map (SAM) format and SAMtools.'' {\em Bioinformatics} (2009), 25: 2078-9.
+
+\bibitem{bwa} Li H. and Durbin R. ``Fast and accurate short read alignment with Burrows-Wheeler Transform.'' {\em Bioinformatics} (2009), 25:1754-60.
 
 \bibitem{dbSNP} National Center for Biotechnology Information (US), (2005-), http://www.ncbi.nlm.nih.gov/projects/SNP/.
 
