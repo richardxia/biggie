@@ -202,7 +202,9 @@ turnaround time between algorithm development and benchmarking, allowing
 researchers to quickly explore the design space of different algorithmic
 choices and ease of developing new algorithms. Figure~\ref{fig:pipeline} shows our basic pipeline. We assume that we start with an
 aligned set of reads for each genome to be processed, in the form of a BAM file
-\cite{samtools}. Sorting the BAM file by the genome index of the alignment is a necessary pre-processing step that can be extremely slow for large datasets. We do not address sorting here, but hope to incorporate it into our pipeline in the future.
+\cite{samtools}.
+Sorting the BAM file by the genome index of the alignment is a necessary pre-processing step that can be extremely slow for large datasets, since machines may be limited by amount of memory available.
+We do not address sorting here, but leave it as potential future work for improving the pipeline.
 
 \begin{figure}[h!]
   	\includegraphics[width=2.6in]{figs/pipeline.png}
@@ -224,8 +226,6 @@ aligned set of reads for each genome to be processed, in the form of a BAM file
 %This allows us to keep the BAM files in memory and avoid writing to disk.
 %We plan to implement this as a classic merge sort over a cluster.
 
-%\subsection{Alignment Classification}
-
 %----------------------
 \subsection{Read Alignment}
 %----------------------
@@ -237,29 +237,15 @@ The raw reads have been produced by the sequencing platform, the first step in g
 \label{sec:classification}
 %-------------------------------------
 
-We first classify each base as either 
-%We classify the regions of the alignment as either 
-``high complexity'' or 
-``low complexity,'' based on the alignment of reads around that base. This will help us separate the genome into high and low complexity regions later on, which 
-allows us to both operate on different regions in
-parallel as well as perform different actions based on the quality of the
-alignments.  Regions of low complexity are characterized by few alignment
-problems, and regions of high complexity are characterized by either few
-alignments or many poor alignments.  We can call SNPs relatively easily in
+We first classify each base as either ``high complexity'' or ``low complexity,'' based on the alignment of reads around that base.
+This helps us separate the genome into high and low complexity regions later on, which allows us to both operate on different regions in parallel as well as perform different actions based on the quality of the alignments.
+Regions of low complexity are characterized by few alignment problems, and regions of high complexity are characterized by either few alignments or many poor alignments.
+We can call SNPs relatively easily in
 areas of low complexity (see Figure~\ref{low-complexity}(a)), while areas of
 high complexity might suggest a structural variant (see
 Figure~\ref{low-complexity}(b)).
-%(large insertion, deletion, transposition, etc).
-The intuition is that load-balancing can be improved if we better differentiate
-between areas of high and low complexity.  Moreover, 
-%that we can perform more thorough
-%analyses on the areas of high complexity to obtain more accurate results.
-simpler and faster algorithms can be used to process areas of low
-complexity, and we can focus our resources and employ more
-sophisticated algorithms on the high complexity regions.
-%As part of our project, we plan to better define high and low complexity and to provide heuristics for defining each.
-
-
+The intuition is that load-balancing can be improved if we better differentiate between areas of high and low complexity.
+Moreover, simpler and faster algorithms can be used to process areas of low complexity, and we can focus our resources and employ more sophisticated algorithms on the high complexity regions.
 
 \begin{figure}[h!]
 \begin{center}
@@ -282,19 +268,24 @@ are typically needed to call variants in these regions.  }
   \label{low-complexity}
 \end{figure}
 
-
 %\TODO{what matei has done}
-We categorize base-level complexity using a sliding
-window of \TODO{what number} bases around the base of interest.  The features we used to
-calculate our complexity score, along with the relative weights associated with
-each feature, are described in Table~\ref{complexity}.
-% along  were the number of reads aligned in each
-%direction (forward and reverse complement); the number of reads with a
-%substitution, insertion, or deletion; the number of reads that aligned with a
-%low mapping quality (possibly indicating a repeat or more complex variant); and
-%the number of reads mapping to multiple locations.  See Table~\ref{complexity}
-%for relative weights of each scoring metric. 
-Scoring was normalized by the number of aligned reads, and then bases with a score over a threshold of $t_b$ are marked as high-complexity. We investigate the effects of varying $t$ in the Results section.
+Our goal is to classify bases which match the reference or contain easy-to-call SNPs as low complexity.
+Likewise, bases containing harder-to-call SNPs and longer structural variants should be classified as high complexity.
+In choosing our heuristics, we consider the following issues with poorly classified bases:
+\begin{enumerate}
+\item Incorrectly classifying harder-to-call SNPs and structural variants as low complexity will cause us to miss those SNPs and variants because a SNP caller will be unable to find them.
+\item Incorrectly classifying simple-to-call SNPs as high complexity will cause us to perform extra work, since they could have been called by a naive SNP caller.
+\end{enumerate}
+
+We compute a numerical complexity score for each base as a function of the number of irregularities within a window of 65 bases around the base of interest.
+The features we used to calculate our complexity score, along with the relative weights associated with each feature, are described in Table~\ref{complexity}.
+Scoring was normalized by the number of aligned reads, and then bases with a score over a threshold of $t_b$ are marked as high-complexity.
+We investigate the effects of varying $t$ in the Results section.
+
+Intuitively, we assign a greater weight to insertion and deletion events than substitution and low quality events because the presence of an insertion or deletion suggests that the area around the event may be affected by a misalignment or indel, and therefore a naive SNP caller may not be able to correctly call the variant.
+Similarly, unusually low coverage suggests that the reads may have been misaligned to a different area, and unusually high coverage suggests that reads from other areas may have been misaligned to the current area.
+Both cases are symptoms of highly repetitive regions (\TODO{citation}).
+Lastly, skewed coverage---when more reads of one direction align to the reference than reads of the other direction---is also indicative of misalignments due to systematic biases.
 \begin{table}[h!]
 \tiny
   \centering
@@ -438,7 +429,8 @@ area.
 \section{Implementation}
 %-------------------
 
-\TODO{fill in}
+We implemented Biggie in Scala in about 1000 lines of code, making use of the Picard Java API for reading and manipulating BAM and FASTA files.
+
 
 %---------------
 \section{Evaluation}
