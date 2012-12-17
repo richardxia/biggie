@@ -30,7 +30,7 @@ class SimpleClassifier(bamFile: SAMFileReader, ref: ReferenceSequence){
 
   // Range of coverages for which to call bases, both in total and per direction.
   val MIN_TOTAL_COVERAGE = 20
-  val MAX_TOTAL_COVERAGE = 200 
+  val MAX_TOTAL_COVERAGE = 200
   val MAX_COVERAGE_DIFFERENCE = 150
 
   // At what quality do we consider reads confident
@@ -65,7 +65,7 @@ class SimpleClassifier(bamFile: SAMFileReader, ref: ReferenceSequence){
     channel.write(byteBuf)
     fos.close()
   }
-  
+
   def parseSam()
   {
     var t_total = 0
@@ -91,8 +91,8 @@ class SimpleClassifier(bamFile: SAMFileReader, ref: ReferenceSequence){
             i += 1
           }
         }
-      } 
-      else 
+      }
+      else
       {
         //logDebug("Processing " + read + " @" + read.position + ": " + read.cigar + "\n" + read.sequence)
         // Read the CIGAR string and update the base counts with it
@@ -101,7 +101,7 @@ class SimpleClassifier(bamFile: SAMFileReader, ref: ReferenceSequence){
         for (cigar <- read.getCigar().getCigarElements()) {
           val op = cigar.getOperator()
           val count = cigar.getLength()
-          op match 
+          op match
           {
             case CigarOperator.S =>
               posInRead += count
@@ -139,32 +139,32 @@ class SimpleClassifier(bamFile: SAMFileReader, ref: ReferenceSequence){
 
             case CigarOperator.M =>
               var i = 0
-	      //var read_seq = ""
+              //var read_seq = ""
               //var ref_seq = ""
-              while (i < count) 
-	      {
-			if (read.getBaseQualities()(posInRead + i) >= MIN_PHRED)
-			{
-				  val base = read.getReadBases()(posInRead+i)
-				  val baseIndex = DNA.BASE_TO_CODE(base)
-				  if (base != 'N')
-				  {
-					    baseCount(dir)(baseIndex)(posInRef + i) += 1
-					    coverage(dir)(posInRef + i) += 1
-					    //read_seq += read.getReadBases()(posInRead + i).toChar
-					    //ref_seq += ref.getBases()(posInRef + i).toChar
-					    t_total += 1
-					    val char_read = read.getReadBases()(posInRead+i)
-					    val char_ref = ref.getBases()(posInRef + i)
-					    if (!(char_read == char_ref || char_read == char_ref + 32 || char_read == char_ref - 32)) {
-					    	subCount(posInRef + i) += 1
-						t_mismatch += 1
-					    }
-				  }
-		          }
-			  i += 1
+              while (i < count)
+              {
+                if (read.getBaseQualities()(posInRead + i) >= MIN_PHRED)
+                  {
+                  val base = read.getReadBases()(posInRead+i)
+                  val baseIndex = DNA.BASE_TO_CODE(base)
+                  if (base != 'N')
+                    {
+                    baseCount(dir)(baseIndex)(posInRef + i) += 1
+                    coverage(dir)(posInRef + i) += 1
+                    //read_seq += read.getReadBases()(posInRead + i).toChar
+                    //ref_seq += ref.getBases()(posInRef + i).toChar
+                    t_total += 1
+                    val char_read = read.getReadBases()(posInRead+i)
+                    val char_ref = ref.getBases()(posInRef + i)
+                    if (!(char_read == char_ref || char_read == char_ref + 32 || char_read == char_ref - 32)) {
+                      subCount(posInRef + i) += 1
+                      t_mismatch += 1
+                    }
+                  }
                 }
-		//println(ref_seq+"|....|"+read_seq)
+                i += 1
+              }
+              //println(ref_seq+"|....|"+read_seq)
                 posInRead += count
                 posInRef += count
 
@@ -205,7 +205,7 @@ class SimpleClassifier(bamFile: SAMFileReader, ref: ReferenceSequence){
       val weirdness = computeWeirdness(pos)
       //println("pos " + (pos) + " score " + weirdness)
       weirdnessBuf(pos) = weirdness
-      if (weirdness > WEIRDNESS_THRESHOLD) 
+      if (weirdness > WEIRDNESS_THRESHOLD)
       {
         if(left == -1) {
           left = pos
@@ -250,17 +250,17 @@ class SimpleClassifier(bamFile: SAMFileReader, ref: ReferenceSequence){
       weirdness += MULTI_WEIRDNESS * multiCount(i)
       totalCoverage += coverage(0)(i) + coverage(1)(i)
       val bicov = coverage(0)(i) + coverage(1)(i)
-      
+
       if(bicov > MAX_TOTAL_COVERAGE){
-	weirdness += OVERCOVER_WEIRDNESS * bicov
+        weirdness += OVERCOVER_WEIRDNESS * bicov
       }
 
       if(bicov < MIN_TOTAL_COVERAGE){
-	weirdness += UNDERCOVER_WEIRDNESS * bicov
+        weirdness += UNDERCOVER_WEIRDNESS * bicov
       }
 
       if( coverage(0)(pos)-coverage(1)(pos) > MAX_COVERAGE_DIFFERENCE || coverage(1)(pos) - coverage(0)(pos) > MAX_COVERAGE_DIFFERENCE){
-	weirdness += UNBALANCED_COVER_WEIRDNESS * bicov
+        weirdness += UNBALANCED_COVER_WEIRDNESS * bicov
       }
 
       i += 1
