@@ -98,6 +98,13 @@ def compare_snp_dict(snp_ref, snp_alt):
     print('percent bad ' + str(bad_snps/float(num_common)))
     print('false pos ' + str(false_pos))
     print('false neg ' + str(false_neg))
+
+    #false_pos_set = set_alt - set_ref
+    #false_neg_set = set_ref - set_alt
+    #print("false pos:")
+    #for i in false_pos_set: print(i)
+    #print("false neg:")
+    #for i in false_neg_set: print(i)
     return num_common, bad_snps, false_pos, false_neg
 
 
@@ -122,6 +129,7 @@ def lst_false_negs(snp_ref, snp_alt):
 
 # obtain lst of weird bases from file
 def weird_bases(file_name, threshold, false_neg_array):
+    false_neg_set = set(false_neg_array)
     f = file(file_name,'r')
     num_uncalled_neg = 0
 
@@ -131,8 +139,8 @@ def weird_bases(file_name, threshold, false_neg_array):
             pos = int(tokens[1])+1
             score = float(tokens[3])
 
-            if score > threshold and pos in false_neg_array:
-                print('uncalled false neg ' + str(pos))
+            if score > threshold and pos in false_neg_set:
+                #print('uncalled false neg ' + str(pos))
                 num_uncalled_neg += 1
     print('num uncalled false neg ' + str(num_uncalled_neg))
     return num_uncalled_neg
