@@ -1,4 +1,5 @@
-# take in a file of snps and a file of weirdness scores and filter out those above a certain score
+# input: a file of snps (in either vcf or our format) and a file of weirdness scores, and a prefix for output files
+# output: a set of files (one for each threshold) that filters out those above a certain score
 
 import sys
 
@@ -9,12 +10,13 @@ import sys
 
 all_snp_file_name = sys.argv[1]
 weirdness_file_name = sys.argv[2]
+prefix = sys.argv[3]
 
 threshold_lst = [0.01,0.1,1,10,100]
 file_lst = []
 for t in threshold_lst:
     t_str = str(t).replace('.','_')
-    file_lst.append(file('venter_chr20_base_' + t_str + '_ignore_unmapped.snps','w'))
+    file_lst.append(file(prefix + t_str + '.snps','w'))
 
 #------
 # MAIN
@@ -25,11 +27,21 @@ all_snp_file = file(all_snp_file_name,'r')
 weirdness_file = file(weirdness_file_name,'r')
 
 all_pos_dict = {}
-for line in all_snp_file:
-    if line[0] == 'C':
-        tokens = line.split()
-        pos = int(tokens[4])+1
-        all_pos_dict[pos] = line
+
+# true vcf file
+if 'vcf' in all_snp_file_name:
+    for line in all_snp_file:
+        if line[0] != '#':
+            tokens = line.split()
+            pos = int(tokens[1])
+            all_pos_dict[pos] = line
+# our format
+else:
+    for line in all_snp_file:
+        if line[0] == 'C':
+            tokens = line.split()
+            pos = int(tokens[4])+1
+            all_pos_dict[pos] = line
 
 print('finished with snp file')
 
