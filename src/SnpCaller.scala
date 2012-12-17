@@ -16,8 +16,8 @@ class SnpCaller(bamFile: SAMFileReader, ref: ReferenceSequence, refSeq: String, 
   // [region.start, region.end] with respect to reference, 1-indexed
 
   // Range of coverages for which to call bases, both in total and per direction.
-  val TOTAL_COVERAGE_RANGE = 22 to 100
-  val DIR_COVERAGE_RANGE = 10 to 50
+  val TOTAL_COVERAGE_RANGE = 20 to 70
+  val DIR_COVERAGE_RANGE = 8 to 40
 
   // What fraction of coverage the second-most-common base should have for us to report it;
   // you'd think this should be something like .4, but PCR imbalance messes it up.
