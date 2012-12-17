@@ -13,8 +13,8 @@
 \begin{document}
 \title{BIGGIE: A Distributed Pipeline for Genomic Variant Calling}
 \author{
-Richard Xia, Sara Sheehan, Yuchen Zhang, Ameet Talwalkar, Matei Zaharia \\
-\textbf{Jonathan Terhorst, Michael Jordan, Yun S. Song, Armando Fox, David Patterson} \\
+Richard Xia, Sara Sheehan, Yuchen Zhang, Ameet Talwalkar, atei Zaharia \\
+\textbf{Jonathan Terhorst, ichael Jordan, Yun S. Song, Armando Fox, David Patterson} \\
 Division of Computer Science\\
 University of California, Berkeley\\
 Berkeley, CA 94720 \\
@@ -26,13 +26,13 @@ Berkeley, CA 94720 \\
 
 \begin{abstract}
 Due to recent advances in nucleotide sequencing technology, the cost of genomic
-sequencing is decreasing at a pace that vastly exceeds Moore's law.  The
+sequencing is decreasing at a pace that vastly exceeds oore's law.  The
 computational methods needed to process short read data are struggling to keep
 pace; indeed, current sequencing pipelines take days to execute for even a
 single human genome.  In this work, we describe the Big Genomics Inference
 Engine (BIGGIE), a faster variant calling pipeline designed for modern
 distributed clusters that supports the efficient processing of thousands to
-millions of genomes.  Moreover, the modular design of our system should foster
+millions of genomes.  oreover, the modular design of our system should foster
 the rapid development and painless integration of new algorithms.  BIGGIE
 hinges on the observation that we do not need to perform the same computation
 on all regions of the genome, but rather can first classify the genome into
@@ -59,12 +59,12 @@ capacity to conduct genomic analyses struggles to keep pace.
 \begin{figure}[h!]
   \centering
   \includegraphics[width=2.5in]{figs/sequencing-costs.png}
-  \caption{The cost of genome sequencing has been falling faster than Moore's Law.}
+  \caption{The cost of genome sequencing has been falling faster than oore's Law.}
   \label{moore}
 \end{figure}
 %\end{wrapfigure}
 
-Much of genomic data processing is a statistical inference problem, involving
+uch of genomic data processing is a statistical inference problem, involving
 inferring the DNA sequence of an individual from short ``reads'' of DNA produced
 by sequencing machines. Unfortunately, current pipelines take days to execute
 for even a single human genome.
@@ -166,7 +166,7 @@ alignment data and subsequently allocate resources accordingly.
 %many other organisms.  Easily obtaining fast and accurate variant calls is thus
 %very important for downstream biological analysis.
 
-%Moreover, current app and current algorithms, in particular structural variant
+%oreover, current app and current algorithms, in particular structural variant
 %callers  While the current algorithms work well for many of the simpler
 %analyses, there is a lack of accurate algorithms involving machine learning and
 %population genetics to perform more complex analyses.  In addition, many of the
@@ -174,7 +174,7 @@ alignment data and subsequently allocate resources accordingly.
 %quickly develop faster and more accurate algorithms.
 
 %\TODO{Instead of focusing just on SNP calling, say that we're building a more general framework}
-%More specifically we begin with the problem of calling single-nucleotide
+%ore specifically we begin with the problem of calling single-nucleotide
 %polymorphisms (SNP, pronounced ``snip''), due to its simplicity compared to
 %other types of analyses, yet we plan to design our pipeline with the
 %possibility of adding more complex analyses later on.  
@@ -190,20 +190,20 @@ alignment data and subsequently allocate resources accordingly.
 %Sequencing errors in different reads should in theory be independent, although separating errors from SNPs can be challenging in areas of low sequencing coverage (i.e. few aligned reads overlap a given base in the reference).
 
 %--------------
-\section{Methods}
+\section{ethods}
 %--------------
 
 The following subsections describe the various steps in BIGGIE, explaining what we have implemented and what remains as future work.
 %as well as how we plan to build them for an efficient distributed system.  
 Several steps
 rely on domain knowledge for improved work distribution and communication.
-Moreover, the modularity and efficiency of our system will provide a short 
+oreover, the modularity and efficiency of our system will provide a short 
 turnaround time between algorithm development and benchmarking, allowing
 researchers to quickly explore the design space of different algorithmic
 choices and ease of developing new algorithms. Figure~\ref{fig:pipeline} shows our basic pipeline. We assume that we start with an
-aligned set of reads for each genome to be processed, in the form of a BAM file
+aligned set of reads for each genome to be processed, in the form of a BA file
 \cite{samtools}.
-Sorting the BAM file by the genome index of the alignment is a necessary pre-processing step that can be extremely slow for large datasets, since machines may be limited by amount of memory available.
+Sorting the BA file by the genome index of the alignment is a necessary pre-processing step that can be extremely slow for large datasets, since machines may be limited by amount of memory available.
 We do not address sorting here, but leave it as potential future work for improving the pipeline.
 
 \begin{figure}[h!]
@@ -213,17 +213,17 @@ We do not address sorting here, but leave it as potential future work for improv
 \end{figure}
  
 %% Not related to high/low complexity discussion
-%\subsection{BAM Sorting and Indexing}
-%The most-common format used for representing an aligned set of reads is the BAM (Binary Sequence Alignment Map) format.
-%Most sequence aligners will output a BAM file but the reads are usually randomly ordered.
+%\subsection{BA Sorting and Indexing}
+%The most-common format used for representing an aligned set of reads is the BA (Binary Sequence Alignment ap) format.
+%ost sequence aligners will output a BA file but the reads are usually randomly ordered.
 %For efficiency reasons, most downstream analysis tools require that the reads are sorted by position and that an index file (in BAI format) is generated for fast random access to reads.
 %If the reads are not sorted by their alignment position with respect to the reference genome, then variant calling would be very difficult.
 %
-%Although there already exist several tools which can sort and index BAM files (\cite{bamtools}, \cite{samtools}), they are limited by the amount of memory and may either fail or resort to paging to disk when out of memory.
-%To our knowledge there do not exist any distributed BAM file sorters or indexers, and sorting BAM files can be one of the slowest steps of the analysis process.
-%Although ideally the BAM file would only be sorted once for each genome, in practice different alignment software (with different parameters) might be used on the same data multiple times.
-%We plan to divide up the unsorted BAM file and sort the segments in parallel across a cluster of machines.
-%This allows us to keep the BAM files in memory and avoid writing to disk.
+%Although there already exist several tools which can sort and index BA files (\cite{bamtools}, \cite{samtools}), they are limited by the amount of memory and may either fail or resort to paging to disk when out of memory.
+%To our knowledge there do not exist any distributed BA file sorters or indexers, and sorting BA files can be one of the slowest steps of the analysis process.
+%Although ideally the BA file would only be sorted once for each genome, in practice different alignment software (with different parameters) might be used on the same data multiple times.
+%We plan to divide up the unsorted BA file and sort the segments in parallel across a cluster of machines.
+%This allows us to keep the BA files in memory and avoid writing to disk.
 %We plan to implement this as a classic merge sort over a cluster.
 
 %----------------------
@@ -245,7 +245,7 @@ areas of low complexity (see Figure~\ref{low-complexity}(a)), while areas of
 high complexity might suggest a structural variant (see
 Figure~\ref{low-complexity}(b)).
 The intuition is that load-balancing can be improved if we better differentiate between areas of high and low complexity.
-Moreover, simpler and faster algorithms can be used to process areas of low complexity, and we can focus our resources and employ more sophisticated algorithms on the high complexity regions.
+oreover, simpler and faster algorithms can be used to process areas of low complexity, and we can focus our resources and employ more sophisticated algorithms on the high complexity regions.
 
 \begin{figure}[h!]
 \begin{center}
@@ -262,7 +262,7 @@ mismatches are indicated with an actual letter in the read (upper and lower
 case letters refer to the strand direction).  In this case, there is an obvious
 SNP with the value `A'. (b) \textbf{High-complexity region} - There are many
 poor quality alignments with several base mismatches in a relatively small
-region. Bases written in displayed in different colors represent varying degrees of poor quality bases. Stars (*) represent a gap in the alignment resulting from an insertion called by at least one read. Many of these poor alignments are due to the highly repetitive
+region. Bases written in displayed in different colors represent varying degrees of poor quality bases. Stars (*) represent a gap in the alignment resulting from an insertion called by at least one read. any of these poor alignments are due to the highly repetitive
 sequence in the area, and more sophisticated techniques, e.g., targeted assembly,
 are typically needed to call variants in these regions.  }
   \label{low-complexity}
@@ -283,8 +283,8 @@ Scoring was normalized by the number of aligned reads, and then bases with a sco
 We investigate the effects of varying $t$ in the Results section.
 
 Intuitively, we assign a greater weight to insertion and deletion events than substitution and low quality events because the presence of an insertion or deletion suggests that the area around the event may be affected by a misalignment or indel, and therefore a naive SNP caller may not be able to correctly call the variant.
-Similarly, unusually low coverage suggests that the reads may have been misaligned to a different area, and unusually high coverage suggests that reads from other areas may have been misaligned to the current area.
-Both cases are symptoms of highly repetitive regions (\TODO{citation}).
+Similarly, unusually low coverage suggests a deletion or that the reads may have been misaligned to a different area, and unusually high coverage suggests an insertion or that reads from other areas may have been misaligned to the current area.
+Both cases are symptoms of structural variation or highly repetitive regions \cite{structuralVar}.
 Lastly, skewed coverage---when more reads of one direction align to the reference than reads of the other direction---is also indicative of misalignments due to systematic biases.
 \begin{table}[h!]
 \tiny
@@ -320,7 +320,7 @@ We also investigate the effects of changing $t_r$, since increasing $t_r$ may in
 \TODO{more details of SNP calling?}
 We employ SNP calling on both the low-complexity bases and the low-complexity regions, leaving the task of calling SNPs and structural variants on high-complexity bases and regions for future work.
 For these low-complexity bases, our goal is speed and accuracy, which are easier to attain since we are skipping any region we deem complex.
-We implemented a simple consensus-based SNP caller, which roughly builds on the intuition that if a SNP exists, then the majority of the reads which cover that position should agree on a common nucleotide which is different from the reference.\footnote{More specifically, we use the standard 80-20 approach \cite{gatk} to deal with diploid genomes and differentiate between homozygous and heterozygous SNPs.}
+We implemented a simple consensus-based SNP caller, which roughly builds on the intuition that if a SNP exists, then the majority of the reads which cover that position should agree on a common nucleotide which is different from the reference.\footnote{ore specifically, we use the standard 80-20 approach \cite{gatk} to deal with diploid genomes and differentiate between homozygous and heterozygous SNPs.}
 This algorithm is embarrassingly data-parallel and requires no interprocess communication, and may be trivially parallelized over a cluster, with the only requirement being that the reads need to be distributed once at the beginning.
 
 %\begin{table}
@@ -344,7 +344,7 @@ This algorithm is embarrassingly data-parallel and requires no interprocess comm
 %	\centering
 %	\begin{tabular}{|l|c|c|}
 %  \hline
-%	Algorithm & \# SNPs & \# Mendelian conflicts  \\
+%	Algorithm & \# SNPs & \# endelian conflicts  \\
 %	\hline
 %	CASAVA & 128K & 162 \\
 %	\hline
@@ -362,7 +362,7 @@ There are several techniques used for SNP calling,
 %shared between different genomes and be used to provide more accurate SNP
 %calls. 
 and the modularity of our system allows us to easily switch between these
-different options.  More advanced variant detection algorithms exploit common
+different options.  ore advanced variant detection algorithms exploit common
 ancestry among the individuals being studied to pool statistical strength among
 samples.  These estimators have been shown to perform better than the na\"{i}ve
 approach described above, particularly in the case of missing data and/or low
@@ -410,7 +410,7 @@ area.
 %There are two main types of evaluations we plan to make.
 %Since we want to build a faster and more scalable pipeline for SNP calling, we will want to compare our implementation with existing SNP calling pipelines.
 %The main data points of interest are performance, memory usage, scalability, and accuracy.
-%Measuring accuracy will be the most difficult part of the evaluation, since it is the least standardized metric.
+%easuring accuracy will be the most difficult part of the evaluation, since it is the least standardized metric.
 %Our current plan is to compare the SNPs that we call with the SNPs that existing pipelines call as well as existing databases of common SNPs such as dbSNP \cite{dbSNP}.
 %
 %We also will want to explore the state space of different parameters that we can configure with our pipeline.
@@ -420,9 +420,9 @@ area.
 \section{Implementation}
 %-------------------
 
-We implemented Biggie in Scala in about 1000 lines of code, making use of the Picard Java API (\TODO{citation}) for reading and manipulating BAM and FASTA files.
+We implemented Biggie in Scala in about 1000 lines of code, making use of the Picard Java API \cite{picard} for reading and manipulating BA and FASTA files.
 We structured Biggie as a pipeline consisting of the classifier and the SNP caller, with the option to run them together or separately.
-When choosing to run both stages together, the FASTA files and the BAM files are kept in memory as well as the weirdness scores, allowing the SNP caller to immediately begin running after the classifier.
+When choosing to run both stages together, the FASTA files and the BA files are kept in memory as well as the weirdness scores, allowing the SNP caller to immediately begin running after the classifier.
 
 %---------------
 \section{Evaluation}
@@ -430,12 +430,12 @@ When choosing to run both stages together, the FASTA files and the BAM files are
 
 To test the efficacy of our classifier, we used
 %real data (Yoruban trio data from the 1000 genomes project \cite{1000genomes}) and 
-simulated data from human Chromosome 20. \TODO{cite tvsim} The simulated data consisted of SNPs and other structural variation 
+simulated data \cite{tvsim} from human Chromosome 20. The simulated data consisted of SNPs and other structural variation 
 %taken from dbSNP randomly
-inserted into the reference for Chromosome 20, which is $63$M bases in length,
+inserted into the reference for Chromosome 20, which is $63$ bases in length,
 of which 94.4\% are known (not Ns).
 %Artificial reads were then generated from this simulated genome using simNGS \cite{simNGS}.
-We compared BIGGIE to two other variant callers, SAMtools mpileup and GATK (see Section~\ref{sec:relatedWork} for a discussion of these two methods). SAMtools mpileup was run using the best-practices suggestions, with one pass for generating a raw vcf (common variant format) file and one pass for filtering based on quality metrics. GATK was also run using the best-practices suggestions, with one raw vcf pass, a pass for annotating variants (requires training data), and a pass for filtering based on the the annotation step. When running BIGGIE, we evaluated the false negatives only on the low complexity regions, not the high complexity regions where we did not attempt to call variation.
+We compared BIGGIE to two other variant callers, SAtools mpileup and GATK (see Section~\ref{sec:relatedWork} for a discussion of these two methods). SAtools mpileup was run using the best-practices suggestions, with one pass for generating a raw vcf (common variant format) file and one pass for filtering based on quality metrics. GATK was also run using the best-practices suggestions, with one raw vcf pass, a pass for annotating variants (requires training data), and a pass for filtering based on the the annotation step. When running BIGGIE, we evaluated the false negatives only on the low complexity regions, not the high complexity regions where we did not attempt to call variation.
 
 To compare the methods, we only considered SNPs, not more complex structural variation.
 
@@ -462,8 +462,8 @@ complexity regions, we ran our simple SNP caller only on low-complexity regions.
 %versus roughly $2$ hours for GATK).  In Table~\ref{SNP-sim}, we compare the
 %false positive and false negative rates of GATK with our SNP caller on
 %simulated data.  In Table~\ref{SNP-real}, we compare the number of SNPs and
-%Mendelian conflicts of CASAVA \cite{casava} with our SNP caller on real data, using the
-%Yoruban trio to determine Mendelian conflicts.  
+%endelian conflicts of CASAVA \cite{casava} with our SNP caller on real data, using the
+%Yoruban trio to determine endelian conflicts.  
 
 \TODO{discuss the results below}
 
@@ -485,11 +485,11 @@ complexity regions, we ran our simple SNP caller only on low-complexity regions.
 \label{sec:relatedWork}
 %-----------------
 
-There are several existing variant callers, such at CASAVA \cite{casava}, SAMtools mpileup \cite{samtools}, GATK \cite{gatk}, and Platypus \cite{platypus}. Each one has unique algorithmic innovations, but there are a core set of steps that are commonly used. CASAVA is Illumina's variant caller, and is not free, so we do not compare against it.
+There are several existing variant callers, such at CASAVA \cite{casava}, SAtools mpileup \cite{samtools}, GATK \cite{gatk}, and Platypus \cite{platypus}. Each one has unique algorithmic innovations, but there are a core set of steps that are commonly used. CASAVA is Illumina's variant caller, and is not free, so we do not compare against it.
 
-SAMtools mpileup uses a set of alignment filters that attempt to distinguish artifacts from true variation. They also use the concept of a Base Alignment Quality (BAQ), which is the probability that a read base is misaligned. Filtering on BAQ scores helps them elliminate false positive SNPs that are truly small indels. Some drawbacks of mpileup are its slow runtime and somewhat less sophisticated filtering.
+SAtools mpileup uses a set of alignment filters that attempt to distinguish artifacts from true variation. They also use the concept of a Base Alignment Quality (BAQ), which is the probability that a read base is misaligned. Filtering on BAQ scores helps them elliminate false positive SNPs that are truly small indels. Some drawbacks of mpileup are its slow runtime and somewhat less sophisticated filtering.
 
-%SAMtools is being replaced by GATK as the industry standard.
+%SAtools is being replaced by GATK as the industry standard.
 
 GATK (Genome Analysis Toolkit) has extensive funtionality beyond variant calling, but has not released the algorithmic details for their current implementation. On a high level, their variant calling algorithm makes a first pass, identifying areas that might be SNPs, indels, or structural variation. Then a second pass requires the user to specify a set of parameters (such as mapping quality, coverage, etc) and a set of outside training data (where the truth is known), so that the algorithm can learn which variants are true and which are noise. The filtered variants are then output. The combination of outside training data and many user-defined parameters makes GATK very difficult to use and understand. Although
 GATK does have the ability to perform in a distributed environment, this
@@ -498,7 +498,7 @@ ends up being very slow.  Although GATK provides more functionality than simple
 SNP calling, and can be tuned to produce good results, our system is much faster and more
 lightweight than GATK.
 
-Most variant callers consider each candidate SNP independently, but the caller
+ost variant callers consider each candidate SNP independently, but the caller
 Platypus aggregates information within a window of the genome to take into
 account local information. In addition, there are many programs to call more
 complex structural variation, although the field is less developed than SNP
@@ -520,35 +520,42 @@ There are many interesting areas of future work, and we plan for implementation 
 \newpage
 \begin{thebibliography}{1}
 
-\bibitem{telescoper} Bresler M., Sheehan S., Chan A., and Song, Y., ``Telescoper: {\it de novo} assembly of highly repetitive regions.'' {\em Bioinformatics} (2012), 28: 311-317.
+\bibitem{1000genomes} The 1000 Genomes Project Consortium. ``A map of human genome variation from population-scale sequencing.'' {\em Nature} (2010) 467:1061–1073.
 
-\bibitem{bamtools} Barnett D., Garrison E., Quinlan A., Str\"{o}mber M., and Marth G., ``BamTools: a C++ API and toolkit for analyzing and managing BAM files.'' {\em Bioinformatics} (2011), 27: 1691-1692.
+\bibitem{telescoper} Bresler ., Sheehan S., Chan A., and Song, Y., ``Telescoper: {\it de novo} assembly of highly repetitive regions.'' {\em Bioinformatics} (2012), 28: 311-317.
 
-\bibitem{gatk} DePristo M., Banks E., Poplin R., Garimella K., Maguire J., Hartl C., Philippakis A., del Angel G., Rivas M., Hanna M., McKenna A., Fennell T., Kernytsky A., Sivachenko A., Cibulskis K., Gabriel S., Altshuler D., and Daly M., ``A framework for variation discovery and genotyping using next-generation DNA sequencing data.'' {\em Nature Genetics} (2011), 43:491-498.
+\bibitem{bamtools} Barnett D., Garrison E., Quinlan A., Str\"{o}mber ., and arth G., ``BamTools: a C++ API and toolkit for analyzing and managing BA files.'' {\em Bioinformatics} (2011), 27: 1691-1692.
+
+\bibitem{casava} CASAVA. (2012), http://www.illumina.com/software/genome\_analyzer\_software.ilmn.
+
+\bibitem{kristalcurtis} Curtis, K., personal communication, (2012).
+
+\bibitem{gatk} DePristo ., Banks E., Poplin R., Garimella K., aguire J., Hartl C., Philippakis A., del Angel G., Rivas ., Hanna ., cKenna A., Fennell T., Kernytsky A., Sivachenko A., Cibulskis K., Gabriel S., Altshuler D., and Daly ., ``A framework for variation discovery and genotyping using next-generation DNA sequencing data.'' {\em Nature Genetics} (2011), 43:491-498.
 
 \bibitem{haussler} Haussler D. Keynote Address: The UCSC Cancer Genomics Hub. (2012) https://www.usenix.org/conference/osdi12/keynote-address.
 
-\bibitem{samtools} Li H., Handsaker B., Wysoker A., Fennell T., Ruan J., Homer N., Marth G., Abecasis G., Durbin R. and 1000 Genome Project Data Processing Subgroup, ``The Sequence alignment/map (SAM) format and SAMtools.'' {\em Bioinformatics} (2009), 25: 2078-9.
-
 \bibitem{bwa} Li H. and Durbin R. ``Fast and accurate short read alignment with Burrows-Wheeler Transform.'' {\em Bioinformatics} (2009), 25:1754-60.
+
+\bibitem{samtools} Li H., Handsaker B., Wysoker A., Fennell T., Ruan J., Homer N., arth G., Abecasis G., Durbin R. and 1000 Genome Project Data Processing Subgroup, ``The Sequence alignment/map (SA) format and SAtools.'' {\em Bioinformatics} (2009), 25: 2078-9.
+
+\bibitem{tvsim} Liptrap J., TVsim genomic read simulation program. (2012).
+
+\bibitem{simNGS} assingham T., ``simNGS and simLibrary -- Software for Simulating Next-Gen Sequencing Data.'' (2010), http://www.ebi.ac.uk/goldman-srv/simNGS/.
 
 \bibitem{dbSNP} National Center for Biotechnology Information (US), (2005-), http://www.ncbi.nlm.nih.gov/projects/SNP/.
 
 \bibitem{nielsen} Nielsen, R., Paul, J.S., Albrechtsen, A., and Song, Y.S. ``Genotype and SNP calling from next-generation sequencing data.'' {\em Nature Reviews Genetics} (2011), 12:443-451. 
 
-\bibitem{platypus} Rimmer A., Mathieson I., Lunter G., and McVean G., ``Platypus: An Integrated Variant Caller'' (2012), www.well.ox.ac.uk/platypus.
+\bibitem{picard} Picard. (2012), http://picard.sourceforge.net/.
 
-\bibitem{kristalcurtis} Curtis, K., personal communication, (2012).
+\bibitem{platypus} Rimmer A., athieson I., Lunter G., and cVean G., ``Platypus: An Integrated Variant Caller.'' (2012), www.well.ox.ac.uk/platypus.
 
-\bibitem{schuster} Schuster, S. ``Next-generation sequencing transforms today's biology.'' {\em Nature Methods} (2008), 5: 16-18.
+\bibitem{schuster} Schuster, S. ``Next-generation sequencing transforms today's biology.'' {\em Nature ethods} (2008), 5: 16-18.
 
-\bibitem{1000genomes} The 1000 Genomes Project Consortium. ``A map of human genome variation from population-scale sequencing.'' {\em Nature} (2010) 467:1061–1073.
+\bibitem{structuralVar} Tuzun E. {\em et al}, ``Fine-scale structural variation of the human genome.'' {\em Nature Genetics} (2005), 37: 727-732. 
 
-\bibitem{snap} Zaharia M., Bolosky W., Curtis K., Fox A., Patterson P., Shenker S., Stoica I., Karp R., Sittler T., ``Faster and More Accurate Sequence Alignment with SNAP.'' (2011) http://arxiv.org/abs/1111.5572.
+\bibitem{snap} Zaharia ., Bolosky W., Curtis K., Fox A., Patterson P., Shenker S., Stoica I., Karp R., Sittler T., ``Faster and ore Accurate Sequence Alignment with SNAP.'' (2011) http://arxiv.org/abs/1111.5572.
 
-\bibitem{simNGS} Massingham T. simNGS and simLibrary -- Software for Simulating Next-Gen Sequencing Data. (2010) http://www.ebi.ac.uk/goldman-srv/simNGS/.
-
-\bibitem{casava} CASAVA. (2012) http://support.illumina.com/sequencing/sequencing\_software/casava.ilmn.
 \end{thebibliography}
 
 \end{document}
