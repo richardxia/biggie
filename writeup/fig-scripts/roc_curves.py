@@ -62,6 +62,8 @@ for i, data in enumerate(series):
 plt.xticks([x+WIDTH*num_files/2 for x in range(2)],['SNP false pos','SNP false neg'])
 plt.legend(LEG_LST,ERROR_LEG[:num_files],loc=1)
 plt.axis([-WIDTH,2,0,16000])
+plt.ylabel("# of SNPs")
+plt.title('Error rate of various SNP callers')
 plt.savefig('variant_call_results_all.pdf',format='pdf')
 
 # graph correct calls
@@ -72,5 +74,27 @@ for i in range(len(common_snp_lst)):
 plt.xticks([x+WIDTH*num_files/2 for x in range(1)],['correct SNPs'])
 plt.legend(LEG_LST,CORRECT_LEG[:num_files],loc=1)
 plt.axis([-WIDTH-0.1,1+0.9,0,67000])
+plt.ylabel("# of SNPs")
+plt.title('Accuracy of various SNP callers')
 plt.savefig('correct_results_all.pdf',format='pdf')
 
+# graph roc curve for per-base results
+plt.clf()
+
+thresholds = [0.01, 0.1, 1, 10, 100]
+false_pos = [27, 1216, 3949, 4464, 4480]
+false_neg = [24, 2428, 3285, 3778, 3887]
+false_neg_hi_complex = [30095, 6654, 1301, 257, 99]
+common_snps = [31202, 52439, 56935, 57486, 57535]
+plt.xscale('log')
+p = plt.plot(thresholds, false_pos, '-o')
+p = plt.plot(thresholds, false_neg, '-o')
+p = plt.plot(thresholds, false_neg_hi_complex, '-o')
+plt.ylim(ymax=7000)
+#p = plt.plot(thresholds, common_snps, '-o')
+LEG_LST2 = ['false positives', 'false negatives', 'high complexity false negatives']
+plt.legend(LEG_LST2)
+plt.xlabel('complexity score')
+plt.ylabel('# of SNPs')
+plt.title('Accuracy vs complexity score')
+plt.savefig('base_accuracy_vs_thresh.pdf', format='pdf')
