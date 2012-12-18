@@ -282,7 +282,8 @@ We investigate the effects of varying $t$ in the Results section.
 Intuitively, we assign a greater weight to insertion and deletion events than substitution and low quality events because the presence of an insertion or deletion suggests that the area around the event may be affected by a misalignment or indel, and therefore a naive SNP caller may not be able to correctly call the variant.
 Similarly, unusually low coverage suggests a deletion or that the reads may have been misaligned to a different area, and unusually high coverage suggests an insertion or that reads from other areas may have been misaligned to the current area.
 Both cases are symptoms of structural variation or highly repetitive regions \cite{structuralVar}.
-Lastly, skewed coverage---when more reads of one direction align to the reference than reads of the other direction---is also indicative of misalignments due to systematic biases.
+Lastly, skewed coverage---i.e. when more reads of one direction align to the reference than reads of the other direction---is also indicative of misalignments due to systematic biases.
+For the coverage-based features, the weights are lower because abnormal coverage usually comes in large regions, and so each abnormally covered base within the window of the base of interest factors into the complexity score.
 \begin{table}[h!]
 \tiny
   \centering
@@ -293,6 +294,9 @@ Lastly, skewed coverage---when more reads of one direction align to the referenc
     Insertion & 10 & $\#$ aligned reads showing an \\ && insertion with respect to the reference\\\hline
     Deletion & 10 & $\#$ aligned reads showing a \\ && deletion with respect to the reference\\\hline
     Low Quality & 3 & $\#$ reads aligned with low map quality \\ && (a common indicator of repetitive region)\\\hline
+    High Coverage & 0.1 & more than expected coverage \\ && (a common indicator of repetitive region)\\\hline
+    Low Coverage & 0.1 & less than expected coverage \\ && (a common indicator of repetitive region)\\\hline
+    Skewed Coverage & 0.1 & coverage in each direction differs greatly \\\hline
   \end{tabular}
   \caption{Relative weight of features for computing complexity.}
   \label{complexity}
@@ -307,14 +311,15 @@ Lastly, skewed coverage---when more reads of one direction align to the referenc
 We then use the complexity scores at each base to define high-complexity regions, which are ranges of bases that may contain both high and low complexity bases.
 We build up high-complexity regions in a greedy fashion, adding bases while maintaining that the overall high-complexity base density remains above a threshold $t_r$.
 After generating the set of high-complexity regions in this manner, we filter out high-complexity regions that are less than 500 bases long.
+
 We also investigate the effects of changing $t_r$, since increasing $t_r$ may increase the number of truly high-complexity variants which we are unable to call with a simple SNP caller, while decreasing $t_r$ may lower the number of high-complexity regions and improve load balancing.
-\TODO{provide more details?}
+$t_r$ also affects the total percentage of the genome covered by high-complexity regions, and if too low of a $t_r$ is chosen, we may not calling many bases that could be called with a simple SNP caller and end up leaving too much work for more complex variant callers.
+
 
 %-------------------
 \subsection{SNP Calling}
 %-------------------
 
-\TODO{more details of SNP calling?}
 We employ SNP calling on both the low-complexity bases and the low-complexity regions, leaving the task of calling SNPs and structural variants on high-complexity bases and regions for future work.
 For these low-complexity bases, our goal is speed and accuracy, which are easier to attain since we are skipping any region we deem complex.
 We implemented a simple consensus-based SNP caller, which roughly builds on the intuition that if a SNP exists, then the majority of the reads which cover that position should agree on a common nucleotide which is different from the reference.\footnote{More specifically, we use the standard 80-20 approach \cite{gatk} to deal with diploid genomes and differentiate between homozygous and heterozygous SNPs.}
@@ -417,8 +422,8 @@ area.
 \section{Implementation}
 %-------------------
 
-We implemented Biggie in Scala in about 1000 lines of code, making use of the Picard Java API \cite{picard} for reading and manipulating BAM and FASTA files.
-We structured Biggie as a pipeline consisting of the classifier and the SNP caller, with the option to run them together or separately.
+We implemented BIGGIE in Scala in about 1000 lines of code, making use of the Picard Java API \cite{picard} for reading and manipulating BAM and FASTA files.
+We structured BIGGIE as a pipeline consisting of the classifier and the SNP caller, with the option to run them together or separately.
 When choosing to run both stages together, the FASTA files and the BAM files are kept in memory as well as the weirdness scores, allowing the SNP caller to immediately begin running after the classifier.
 
 %---------------
@@ -427,12 +432,12 @@ When choosing to run both stages together, the FASTA files and the BAM files are
 
 To test the efficacy of our classifier, we used
 %real data (Yoruban trio data from the 1000 genomes project \cite{1000genomes}) and 
-simulated data \cite{tvsim} from human Chromosome 20. The simulated data consisted of SNPs and other structural variation 
+simulated data \cite{tvsim} from human Chromosome 20. The simulated data consists of SNPs and other structural variation 
 %taken from dbSNP randomly
-inserted into the reference for Chromosome 20, which is $63$ bases in length,
+inserted into the reference for Chromosome 20, which is $63$M bases in length,
 of which 94.4\% are known (not Ns).
 %Artificial reads were then generated from this simulated genome using simNGS \cite{simNGS}.
-We compared BIGGIE to two other variant callers, SAMtools mpileup and GATK (see Section~\ref{sec:relatedWork} for a discussion of these two methods). SAMtools mpileup was run using the best-practices suggestions, with one pass for generating a raw vcf (common variant format) file and one pass for filtering based on quality metrics. GATK was also run using the best-practices suggestions, with one raw vcf pass, a pass for annotating variants (requires training data), and a pass for filtering based on the annotation step. When running BIGGIE, we evaluated the false negatives only on the low complexity regions, not the high complexity regions where we did not attempt to call variation.
+We compared BIGGIE to two other variant callers, SAMtools's mpileup and GATK (see Section~\ref{sec:relatedWork} for a discussion of these two methods). SAMtools mpileup was run using the best-practices suggestions, with one pass for generating a raw vcf (common variant format) file and one pass for filtering based on quality metrics. GATK was also run using the best-practices suggestions, with one raw vcf pass, a pass for annotating variants (requires training data), and a pass for filtering based on the annotation step. When running BIGGIE, we evaluated the false negatives only on the low complexity regions, not the high complexity regions where we did not attempt to call variation.
 
 To compare the methods, we only considered SNPs, not more complex structural variation.
 
@@ -440,14 +445,51 @@ To compare the methods, we only considered SNPs, not more complex structural var
 \section{Results}
 %-------------
 
-For the simulated data, 16.6\% of the genome was in a region of high complexity, for $t_r =0.05$. 
+\begin{table}[tb]
+  \centering
+  \small
+  \begin{tabular}{| p{5cm} | p{0.8cm} |}
+    \hline
+    Stats, t = 14\% & \\
+    \hline
+    Number of high complexity regions & 4245 \\
+    Percentage of genome in high complexity regions & 20.0\% \\
+    Percentage of high complexity bases covered & 67.6\% \\
+    \hline
+  \end{tabular}
+  \caption{Summary of high complexity regions}
+  \label{tab:complexity}
+\end{table}
+
+
+For the simulated data, 20.0\% of the genome was in a region of high complexity, with 67.6\% of high complexity bases covered by a high complexity region, for $t_r =0.14$. 
 %2.2\% of the non-N bases had a
 %high complexity score, and for the real data 11.5\% had a high complexity
 %score.  The increase for real data is partly due to indels in the reads, but
-%probably also due to lower and more variable coverage.  
+%probably also due to lower and more variable coverage.
+Table~\ref{tab:complexity} shows more information on the regions.
 We hope to further refine this complexity metric and provide the possibility for different types
 of classification.  However, this metric already shows that we can drastically
-reduce the set of regions we need to analyze in detail.
+reduce the set of regions we need to analyze in detail and still guarantee that we can identify and cover most of the difficult regions.
+
+\begin{table}[tb]
+  \centering
+  \small
+  \begin{tabular}{| c | c |}
+    \hline
+    Algorithm & Runtime \\
+    \hline
+    GATK & 35m 17s \\
+    mpileup & 49m 53s \\
+    BIGGIE & 4m 38s \\
+    \hline
+  \end{tabular}
+  \caption{Comparison of performance of various SNP callers. The runtime is not significantly impacted by the complexity threshold.}
+  \label{tab:performance}
+\end{table}
+
+Table~\ref{tab:performance} displays the performance of BIGGIE compared to GATK and mpileup, showing that BIGGIE is 7.6$\times$--10.7$\times$ faster.
+Although this only shows BIGGIE's performance on the low-complexity regions, it suggests that it is feasible for BIGGIE to spend very little time on the low-complexity regions and that a more complicated algorithm can spend more time on the high-complexity regions.
 
 To verify the
 effectiveness of performing SNP calling based on separate high and low
@@ -462,45 +504,42 @@ complexity regions, we ran our simple SNP caller only on low-complexity regions.
 %endelian conflicts of CASAVA \cite{casava} with our SNP caller on real data, using the
 %Yoruban trio to determine endelian conflicts.  
 
-\TODO{discuss the results below}
+In Figure~\ref{fig:thresh}, we show how the rate of false positive SNPs and false negative SNPs vary with the complexity threshold.
+All bases with complexity scores greater than or equal to the complexity threshold are considered high complexity, and are not called by BIGGIE.
+Both false positives and false negatives increase as the threshold increases, but the number of correct calls increases as well.
+We see a similar pattern on the bottom graph for the region results, where the number of false positives and false negatives increase with the density of complex bases in high-complexity regions, but the number of true calls increases as well.
+When choosing a complexity score threshold, we want to consider a value that does not just leave all the bases to be called by a more complex SNP caller, yet we want to minimize the number of bases a naive SNP caller cannot accurately call.
+However, the range of error rates over values of complexity thresholds allows us to tune BIGGIE to optimize it for low false positives, low false negatives, and low false negatives in high complexity regions according to the needs of downstream analysis.
 
-\begin{figure}[h!]
+In Figure~\ref{fig:error}, we compare BIGGIE with existing SNP callers based on the total number of correctly called SNPs as well as false positive SNPs and false negative SNPs.
+False positives in BIGGIE are often associated with alignment errors or confusion with a small indel.
+For each algorithm, a very small percentage of correct SNP bases actually have the incorrect (unphased) genotype. %These numbers using aligner BWA are GATK: 0.48\%, mpileup: 0.25\%, and BIGGIE: 0.35\%}
+GATK calls a large number of false positives with SNAP; after consulting the authors of SNAP, it is likely that GATK relies on mapping quality scores, which SNAP does not currently output at the time of this writing.
+GATK has many false positives and few false negatives, indicating that GATK is more aggressive than other tools at calling SNPs and will attempt to avoid missing any SNPs.
+Although BIGGIE calls fewer correct SNPs than existing SNP callers, it very accurately calls bases within the low-complexity regions.
+For BIGGIE, both the number of false positives and false negatives are comparable to mpileup when ignoring bases in high-complexity regions.
+Note that if all of the bases in high-complexity regions were called by a perfect SNP caller, it would allow BIGGIE to match mpileup and GATK in terms of number of correctly called SNPs.
+
+\begin{figure}[t!]
 	\includegraphics[width=2.7in]{figs/base_accuracy_vs_thresh.pdf}
 	\includegraphics[width=2.7in]{figs/region_accuracy_vs_thresh.pdf}
 	\caption{On top are the per-base results, showing errors when we only call low-complexity bases (i.e. complexity score $<$ threshold).
   False negatives are only measured for called bases.
   High complexity false negatives show additional false negatives if calling bases of any complexity.
-  % TODO: Move following lines to actual discussion
-  Both accuracy measures increase as the threshold increases, but the number of correct calls increases as well.
-  We see a similar pattern on the bottom for the region results, where the number of false positives and false negatives increase with the density of complex bases in high-complexity regions, but the number of true calls increases as well.}
+  At $10^{-2}$, the number of high complexity false negatives is off the chart at 30,095 SNPs.}
+  \label{fig:thresh}
 \end{figure}
 
-\begin{figure}[h!]
+\begin{figure}[t!]
 	\includegraphics[width=2.7in]{figs/variant_call_results_all.pdf} \hspace{5mm}
 	\includegraphics[width=2.7in]{figs/correct_results_all.pdf}
 	\caption{Accuracy comparison of BIGGIE with mpileup and GATK.
+  The per-base BIGGIE SNP caller only calls bases with complexity score less than 0.1.
+  The per-region BIGGIE SNP caller only calls bases within low-complexity regions.
   Cross-hatched areas represent false negatives in high-complexity regions which we don't call.
-  Total height of bars in bottom graph represent total possible number of correct SNP calls assuming perfect SNP caller in high-complexity regions.
-  % TODO: Move following lines to actual discussion
-  False positives in BIGGIE are often associated with alignment errors or confusion with a small indel.
-  For each algorithm, a very small percentage of correct SNP bases actually have the incorrect (unphased) genotype.} %These numbers using aligner BWA are GATK: 0.48\%, mpileup: 0.25\%, and BIGGIE: 0.35\%}
+  Total height of bars in bottom graph represent total possible number of correct SNP calls assuming perfect SNP caller in high-complexity regions.}
+  \label{fig:error}
 \end{figure}
-
-\begin{table}[h]
-  \centering
-  \small
-  \begin{tabular}{| p{5cm} | p{0.8cm} |}
-    \hline
-    Stats, t = 14\% & \\
-    \hline
-    Number of high complexity regions & 4245 \\
-    Percentage of genome in high complexity regions & 20.0\% \\
-    \hline
-  \end{tabular}
-  \caption{Summary of high complexity regions}
-  \label{tab:complexity}
-\end{table}
-
 
 
 %-----------------
@@ -531,10 +570,19 @@ calling.  BIGGIE will ideally set us up to efficiently compare structural varian
 \section{Discussion and Future Work}
 %-----------------------------
 
-In this project we have demonstrated that we can efficiently identify a simple type of genetic variation (SNPs) by taking advantage of the fact that, for a given individual, some areas will be very complicated, while some will match the reference in straightforward ways. Distinguishing this difference (and hopefully at a finer granularity later on) helps us use our resources well -- simpler algorithms can be used in regions of low complexity, while more sophisticated algorithms can be used in areas of high complexity. Using a simple SNP caller in regions of low complexity (either per base or by region), we obtain good variant calls, with a very low number of false positives, which was our goal. 
-\TODO{discuss false negatives when we know more}
+In this project we have demonstrated that we can efficiently identify a simple type of genetic variation (SNPs) by taking advantage of the fact that, for a given individual, some areas will be very complicated, while some will match the reference in straightforward ways.
+Distinguishing this difference (and hopefully at a finer granularity later on) helps us use our resources well -- simpler algorithms can be used in regions of low complexity, while more sophisticated algorithms can be used in areas of high complexity.
+Using a simple SNP caller in regions of low complexity (either per base or by region), we obtain good variant calls, with a very low number of false positives, which was our goal. 
 
-There are many interesting areas of future work, and we plan for implementation to continue on BIGGIE. The main areas include scaling up to the entire genome and taking appropriate memory and distribution decisions as difficulties arise, as well as better definitions for what makes a base or a region highly complex. Finally, we would like to make BIGGIE an environment where structural variant callers can be run and compared without reloading data into memory.  Having an end-to-end pipeline will help us learn how mistakes early on can lead to downstream errors, so we can make corrections efficiently. 
+We succeeded in showing that high-complexity regions can be identified and separated from low-complexity regions.
+That BIGGIE can successfully call the bases in the low-complexity regions but not the bases in the high-complexity regions demonstrates that different algorithms can target different regions for performance while maintaining accuracy.
+
+There are many interesting areas of future work, and we plan for implementation to continue on BIGGIE.
+The main areas include scaling up to the entire genome and taking appropriate memory and distribution decisions as difficulties arise, as well as better definitions for what makes a base or a region highly complex.
+While we did not multi-thread BIGGIE, the current stages of the pipeline are all data-parallel, and we do not foresee any difficulty in achieving linear speedup while on a single machine.
+Scaling to multiple machines may require cleverer schemes for initially distributing the data and minimizing communication between machines.
+Finally, we would like to make BIGGIE an environment where structural variant callers can be run and compared without reloading data into memory.
+Having an end-to-end pipeline will help us learn how mistakes early on can lead to downstream errors, so we can make corrections efficiently. 
 
 %\end{multicols}
 \onecolumn
