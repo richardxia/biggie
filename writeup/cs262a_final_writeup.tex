@@ -476,7 +476,7 @@ complexity regions, we ran our simple SNP caller only on low-complexity regions.
   % TODO: Move following lines to actual discussion
   Both accuracy measures increase as the threshold increases, but the number of correct calls increases as well.
   We see a similar pattern on the bottom for the region results, where the number of false positives and false negatives increase with the density of complex bases in high-complexity regions, but the number of true calls increases as well.}
-	\end{figure}
+\end{figure}
 
 \begin{figure}[h!]
 	\includegraphics[width=2.7in]{figs/variant_call_results_all.pdf} \hspace{5mm}
@@ -487,7 +487,23 @@ complexity regions, we ran our simple SNP caller only on low-complexity regions.
   % TODO: Move following lines to actual discussion
   False positives in BIGGIE are often associated with alignment errors or confusion with a small indel.
   For each algorithm, a very small percentage of correct SNP bases actually have the incorrect (unphased) genotype.} %These numbers using aligner BWA are GATK: 0.48\%, mpileup: 0.25\%, and BIGGIE: 0.35\%}
-	\end{figure}
+\end{figure}
+
+\begin{table}[h]
+  \centering
+  \small
+  \begin{tabular}{| p{5cm} | p{0.8cm} |}
+    \hline
+    Stats, t = 5\% & \\
+    \hline
+    Number of high complexity regions & 3603 \\
+    Percentage of genome in high complexity regions & 16.6\% \\
+    \hline
+  \end{tabular}
+  \caption{Summary of high complexity regions}
+  \label{tab:complexity}
+\end{table}
+
 
 
 %-----------------
