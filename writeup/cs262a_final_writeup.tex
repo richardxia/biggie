@@ -472,7 +472,8 @@ complexity regions, we ran our simple SNP caller only on low-complexity regions.
 	\includegraphics[width=2.7in]{figs/region_accuracy_vs_thresh.pdf}
 	\caption{On top are the per-base results, showing errors when we only call low-complexity bases (i.e. complexity score $<$ threshold).
   False negatives are only measured for called bases.
-  High complexity false negatives show additional false negatives from calling bases of any complexity.
+  High complexity false negatives show additional false negatives if calling bases of any complexity.
+  % TODO: Move following lines to actual discussion
   Both accuracy measures increase as the threshold increases, but the number of correct calls increases as well.
   We see a similar pattern on the bottom for the region results, where the number of false positives and false negatives increase with the density of complex bases in high-complexity regions, but the number of true calls increases as well.}
 	\end{figure}
@@ -480,7 +481,12 @@ complexity regions, we ran our simple SNP caller only on low-complexity regions.
 \begin{figure}[h!]
 	\includegraphics[width=2.7in]{figs/variant_call_results_all.pdf} \hspace{5mm}
 	\includegraphics[width=2.7in]{figs/correct_results_all.pdf}
-	\caption{Accuracy comparison of BIGGIE with mpileup and GATK. False positives in BIGGIE are often associated with alignment errors or confusion with a small indel. For each algorithm, a very small percentage of correct SNP bases actually have the incorrect (unphased) genotype.} %These numbers using aligner BWA are GATK: 0.48\%, mpileup: 0.25\%, and BIGGIE: 0.35\%}
+	\caption{Accuracy comparison of BIGGIE with mpileup and GATK.
+  Cross-hatched areas represent false negatives in high-complexity regions which we don't call.
+  Total height of bars in bottom graph represent total possible number of correct SNP calls assuming perfect SNP caller in high-complexity regions.
+  % TODO: Move following lines to actual discussion
+  False positives in BIGGIE are often associated with alignment errors or confusion with a small indel.
+  For each algorithm, a very small percentage of correct SNP bases actually have the incorrect (unphased) genotype.} %These numbers using aligner BWA are GATK: 0.48\%, mpileup: 0.25\%, and BIGGIE: 0.35\%}
 	\end{figure}
 
 

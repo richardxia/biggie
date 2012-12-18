@@ -32,9 +32,10 @@ def graph_vcf(i, snp_pos, snp_neg, hi_complex, c):
     plt.bar([1+start], [hi_complex], WIDTH, [snp_neg-hi_complex], color=c, hatch='x')
     LEG_LST.append(p[0])
 
-def graph_common(i, common_snp, c):
+def graph_common(i, common_snp, hi_complex, c):
     start = WIDTH*i
     plt.bar([0+start], [common_snp], WIDTH, color=c)
+    plt.bar([0+start], [hi_complex], WIDTH, [common_snp], color=c, hatch='x')
 
 
 #------
@@ -50,7 +51,7 @@ series = [
         (60930, 14670, 605, 0),
         (59380, 1660, 2135, 0),
         #(47710, 1500, 8575, 0), #approximation of old base=0.1
-        (47710, 1216, 9082, 6654), #new base=0.1
+        (52439, 1216, 9082, 6654), #new base=0.1
         (38230, 1830, 7453, 0), #approximation of old region=5%
         ]
 
@@ -69,7 +70,7 @@ plt.savefig('variant_call_results_all.pdf',format='pdf')
 # graph correct calls
 plt.clf()
 for i in range(len(common_snp_lst)):
-    graph_common(i, common_snp_lst[i], COLORS[i])
+    graph_common(i, common_snp_lst[i], series[i][3], COLORS[i])
 
 plt.xticks([x+WIDTH*num_files/2 for x in range(1)],['correct SNPs'])
 plt.legend(LEG_LST,CORRECT_LEG[:num_files],loc=1)
