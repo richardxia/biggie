@@ -87,6 +87,7 @@ false_pos = [27, 1216, 3949, 4464, 4480]
 false_neg = [24, 2428, 3285, 3778, 3887]
 false_neg_hi_complex = [30095, 6654, 1301, 257, 99]
 common_snps = [31202, 52439, 56935, 57486, 57535]
+
 plt.xscale('log')
 p = plt.plot(thresholds, false_pos, '-o')
 p = plt.plot(thresholds, false_neg, '-o')
@@ -99,3 +100,23 @@ plt.xlabel('complexity score threshold')
 plt.ylabel('# of SNPs')
 plt.title('Accuracy vs complexity score threshold')
 plt.savefig('base_accuracy_vs_thresh.pdf', format='pdf')
+
+# graph roc curve for region results
+plt.clf()
+thresholds = [4, 5, 6, 7, 8, 10]
+false_pos = [1430, 1825, 2095, 2265, 2490, 2765]
+false_neg = [6455, 7455, 8030, 8470, 8825, 9240]
+false_neg_hi_complex = [30095, 6654, 1301, 257, 99, 20]
+
+p = plt.plot(thresholds, false_pos, '-o')
+p = plt.plot(thresholds, false_neg, '-o')
+#p = plt.plot(thresholds, false_neg_hi_complex, '-o')
+#plt.ylim(ymax=10000)
+plt.ylim(ymin=1000)
+LEG_LST2 = ['false positives', 'false negatives', 'high complexity false negatives']
+plt.legend(LEG_LST2, loc=5)
+plt.xlabel('percentage of complex bases in region')
+plt.ylabel('# of SNPs')
+plt.title('Accuracy vs percentage complex bases')
+plt.savefig('region_accuracy_vs_thresh.pdf', format='pdf')
+
