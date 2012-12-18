@@ -201,9 +201,9 @@ Moreover, the modularity and efficiency of our system will provide a short
 turnaround time between algorithm development and benchmarking, allowing
 researchers to quickly explore the design space of different algorithmic
 choices and ease of developing new algorithms. Figure~\ref{fig:pipeline} shows our basic pipeline. We assume that we start with an
-aligned set of reads for each genome to be processed, in the form of a BA file
+aligned set of reads for each genome to be processed, in the form of a BAM file
 \cite{samtools}.
-Sorting the BA file by the genome index of the alignment is a necessary pre-processing step that can be extremely slow for large datasets, since machines may be limited by amount of memory available.
+Sorting the BAM file by the genome index of the alignment is a necessary pre-processing step that can be extremely slow for large datasets, since machines may be limited by amount of memory available.
 We do not address sorting here, but leave it as potential future work for improving the pipeline.
 
 \begin{figure}[h!]
@@ -213,17 +213,17 @@ We do not address sorting here, but leave it as potential future work for improv
 \end{figure}
  
 %% Not related to high/low complexity discussion
-%\subsection{BA Sorting and Indexing}
-%The most-common format used for representing an aligned set of reads is the BA (Binary Sequence Alignment ap) format.
-%ost sequence aligners will output a BA file but the reads are usually randomly ordered.
+%\subsection{BAM Sorting and Indexing}
+%The most-common format used for representing an aligned set of reads is the BAM (Binary Sequence Alignment ap) format.
+%ost sequence aligners will output a BAM file but the reads are usually randomly ordered.
 %For efficiency reasons, most downstream analysis tools require that the reads are sorted by position and that an index file (in BAI format) is generated for fast random access to reads.
 %If the reads are not sorted by their alignment position with respect to the reference genome, then variant calling would be very difficult.
 %
-%Although there already exist several tools which can sort and index BA files (\cite{bamtools}, \cite{samtools}), they are limited by the amount of memory and may either fail or resort to paging to disk when out of memory.
-%To our knowledge there do not exist any distributed BA file sorters or indexers, and sorting BA files can be one of the slowest steps of the analysis process.
-%Although ideally the BA file would only be sorted once for each genome, in practice different alignment software (with different parameters) might be used on the same data multiple times.
-%We plan to divide up the unsorted BA file and sort the segments in parallel across a cluster of machines.
-%This allows us to keep the BA files in memory and avoid writing to disk.
+%Although there already exist several tools which can sort and index BAM files (\cite{bamtools}, \cite{samtools}), they are limited by the amount of memory and may either fail or resort to paging to disk when out of memory.
+%To our knowledge there do not exist any distributed BAM file sorters or indexers, and sorting BAM files can be one of the slowest steps of the analysis process.
+%Although ideally the BAM file would only be sorted once for each genome, in practice different alignment software (with different parameters) might be used on the same data multiple times.
+%We plan to divide up the unsorted BAM file and sort the segments in parallel across a cluster of machines.
+%This allows us to keep the BAM files in memory and avoid writing to disk.
 %We plan to implement this as a classic merge sort over a cluster.
 
 %----------------------
@@ -242,8 +242,7 @@ This helps us separate the genome into high and low complexity regions later on,
 Regions of low complexity are characterized by few alignment problems, and regions of high complexity are characterized by either few alignments or many poor alignments.
 We can call SNPs relatively easily in
 areas of low complexity (see Figure~\ref{low-complexity}(a)), while areas of
-high complexity might suggest a structural variant (see
-Figure~\ref{low-complexity}(b)).
+high complexity might suggest a structural variant or misaligned reads (see Figure~\ref{low-complexity}(b)).
 The intuition is that load-balancing can be improved if we better differentiate between areas of high and low complexity.
 Moreover, simpler and faster algorithms can be used to process areas of low complexity, and we can focus our resources and employ more sophisticated algorithms on the high complexity regions.
 
@@ -256,15 +255,13 @@ Moreover, simpler and faster algorithms can be used to process areas of low comp
    (b) \\
 \end{tabular}
 \end{center}
-\caption{(a) \textbf{Low-complexity region} - SAMtools alignment viewer on
-chromosome 20 of NA12878.  The reference sequence is displayed on top, and base
-mismatches are indicated with an actual letter in the read (upper and lower
-case letters refer to the strand direction).  In this case, there is an obvious
-SNP with the value `A'. (b) \textbf{High-complexity region} - There are many
-poor quality alignments with several base mismatches in a relatively small
-region. Bases written in displayed in different colors represent varying degrees of poor quality bases. Stars (*) represent a gap in the alignment resulting from an insertion called by at least one read. any of these poor alignments are due to the highly repetitive
-sequence in the area, and more sophisticated techniques, e.g., targeted assembly,
-are typically needed to call variants in these regions.  }
+\caption{(a) \textbf{Low-complexity region} - SAMtools alignment viewer on chromosome 20 of NA12878.
+The reference sequence is displayed on top, and base mismatches are indicated with letters in the reads (upper and lower case letters refer to the strand direction).
+In this case, there is an obvious SNP with the value `A'.
+(b) \textbf{High-complexity region} - There are many poor quality alignments with several base mismatches in a relatively small region.
+Bases written in displayed in different colors represent varying degrees of poor quality bases.
+Stars (*) represent a gap in the alignment resulting from an insertion called by at least one read.
+Many of these poor alignments are due to the highly repetitive sequence in the area, and more sophisticated techniques, e.g., targeted assembly, are typically needed to call variants in these regions.  }
   \label{low-complexity}
 \end{figure}
 
@@ -420,9 +417,9 @@ area.
 \section{Implementation}
 %-------------------
 
-We implemented Biggie in Scala in about 1000 lines of code, making use of the Picard Java API \cite{picard} for reading and manipulating BA and FASTA files.
+We implemented Biggie in Scala in about 1000 lines of code, making use of the Picard Java API \cite{picard} for reading and manipulating BAM and FASTA files.
 We structured Biggie as a pipeline consisting of the classifier and the SNP caller, with the option to run them together or separately.
-When choosing to run both stages together, the FASTA files and the BA files are kept in memory as well as the weirdness scores, allowing the SNP caller to immediately begin running after the classifier.
+When choosing to run both stages together, the FASTA files and the BAM files are kept in memory as well as the weirdness scores, allowing the SNP caller to immediately begin running after the classifier.
 
 %---------------
 \section{Evaluation}
@@ -494,10 +491,10 @@ complexity regions, we ran our simple SNP caller only on low-complexity regions.
   \small
   \begin{tabular}{| p{5cm} | p{0.8cm} |}
     \hline
-    Stats, t = 5\% & \\
+    Stats, t = 14\% & \\
     \hline
-    Number of high complexity regions & 3603 \\
-    Percentage of genome in high complexity regions & 16.6\% \\
+    Number of high complexity regions & 4245 \\
+    Percentage of genome in high complexity regions & 20.0\% \\
     \hline
   \end{tabular}
   \caption{Summary of high complexity regions}
@@ -550,7 +547,7 @@ There are many interesting areas of future work, and we plan for implementation 
 
 \bibitem{telescoper} Bresler M., Sheehan S., Chan A., and Song, Y., ``Telescoper: {\it de novo} assembly of highly repetitive regions.'' {\em Bioinformatics} (2012), 28: 311-317.
 
-\bibitem{bamtools} Barnett D., Garrison E., Quinlan A., Str\"{o}mber M., and arth G., ``BamTools: a C++ API and toolkit for analyzing and managing BA files.'' {\em Bioinformatics} (2011), 27: 1691-1692.
+\bibitem{bamtools} Barnett D., Garrison E., Quinlan A., Str\"{o}mber M., and arth G., ``BamTools: a C++ API and toolkit for analyzing and managing BAM files.'' {\em Bioinformatics} (2011), 27: 1691-1692.
 
 \bibitem{casava} CASAVA. (2012), http://www.illumina.com/software/genome\_analyzer\_software.ilmn.
 

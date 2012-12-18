@@ -10,8 +10,8 @@ LEG_LST = []
 COLORS = ['b','r','g','m','y','k']
 #COLORS = ['b','r','g','m','c','k']
 
-ERROR_LEG = ['BWA+GATK','SNAP+GATK','BWA+mpileup','BWA+BIGGIE,base=0.1','BWA+BIGGIE,region=5%']
-CORRECT_LEG = ['BWA+GATK','SNAP+GATK','BWA+mpileup','BWA+BIGGIE,base=0.1','BWA+BIGGIE,region=5%']
+ERROR_LEG = ['BWA+GATK','SNAP+GATK','BWA+mpileup','BWA+BIGGIE,base=0.1','BWA+BIGGIE,region=14%']
+CORRECT_LEG = ['BWA+GATK','SNAP+GATK','BWA+mpileup','BWA+BIGGIE,base=0.1','BWA+BIGGIE,region=14%']
 
 
 num_files = 5
@@ -52,7 +52,7 @@ series = [
         (59380, 1660, 2135, 0),
         #(47710, 1500, 8575, 0), #approximation of old base=0.1
         (52439, 1216, 9082, 6654), #new base=0.1
-        (38230, 1830, 7453, 0), #approximation of old region=5%
+        (39719, 1799, 21802, 19933), #approximation of old region=5%
         ]
 
 for i, data in enumerate(series):
@@ -74,7 +74,7 @@ for i in range(len(common_snp_lst)):
 
 plt.xticks([x+WIDTH*num_files/2 for x in range(1)],['correct SNPs'])
 plt.legend(LEG_LST,CORRECT_LEG[:num_files],loc=1)
-plt.axis([-WIDTH-0.1,1+0.9,0,67000])
+plt.axis([-WIDTH-0.1,1+0.9+0.8,0,67000])
 plt.ylabel("# of SNPs")
 plt.title('Accuracy of various SNP callers')
 plt.savefig('correct_results_all.pdf',format='pdf')
@@ -103,16 +103,22 @@ plt.savefig('base_accuracy_vs_thresh.pdf', format='pdf')
 
 # graph roc curve for region results
 plt.clf()
-thresholds = [4, 5, 6, 7, 8, 10]
-false_pos = [1430, 1825, 2095, 2265, 2490, 2765]
-false_neg = [6455, 7455, 8030, 8470, 8825, 9240]
-false_neg_hi_complex = [30095, 6654, 1301, 257, 99, 20]
+#thresholds = [4, 5, 6, 7, 8, 10]
+#false_pos = [1430, 1825, 2095, 2265, 2490, 2765]
+#false_neg = [6455, 7455, 8030, 8470, 8825, 9240]
+#false_neg_hi_complex = [30095, 6654, 1301, 257, 99, 20]
+
+thresholds = [8, 10, 12, 14, 16]
+false_pos = [672, 1127, 1480, 1799, 2037]
+#false_neg = [41874, 32399, 26169, 21802, 18748]
+false_neg = [802, 1253, 1593, 1869, 2073]
+false_neg_hi_complex = [41072, 31146, 24576, 19933, 16675]
 
 p = plt.plot(thresholds, false_pos, '-o')
 p = plt.plot(thresholds, false_neg, '-o')
 #p = plt.plot(thresholds, false_neg_hi_complex, '-o')
 #plt.ylim(ymax=10000)
-plt.ylim(ymin=1000)
+#plt.ylim(ymin=1000)
 LEG_LST2 = ['false positives', 'false negatives', 'high complexity false negatives']
 plt.legend(LEG_LST2, loc=5)
 plt.xlabel('percentage of complex bases in region')
