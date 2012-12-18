@@ -13,8 +13,8 @@
 \begin{document}
 \title{BIGGIE: A Distributed Pipeline for Genomic Variant Calling}
 \author{
-Richard Xia, Sara Sheehan, Yuchen Zhang, Ameet Talwalkar, atei Zaharia \\
-\textbf{Jonathan Terhorst, ichael Jordan, Yun S. Song, Armando Fox, David Patterson} \\
+Richard Xia, Sara Sheehan, Yuchen Zhang, Ameet Talwalkar, Matei Zaharia \\
+\textbf{Jonathan Terhorst, Michael Jordan, Yun S. Song, Armando Fox, David Patterson} \\
 Division of Computer Science\\
 University of California, Berkeley\\
 Berkeley, CA 94720 \\
@@ -26,7 +26,7 @@ Berkeley, CA 94720 \\
 
 \begin{abstract}
 Due to recent advances in nucleotide sequencing technology, the cost of genomic
-sequencing is decreasing at a pace that vastly exceeds oore's law.  The
+sequencing is decreasing at a pace that vastly exceeds Moore's law.  The
 computational methods needed to process short read data are struggling to keep
 pace; indeed, current sequencing pipelines take days to execute for even a
 single human genome.  In this work, we describe the Big Genomics Inference
@@ -59,12 +59,12 @@ capacity to conduct genomic analyses struggles to keep pace.
 \begin{figure}[h!]
   \centering
   \includegraphics[width=2.5in]{figs/sequencing-costs.png}
-  \caption{The cost of genome sequencing has been falling faster than oore's Law.}
+  \caption{The cost of genome sequencing has been falling faster than Moore's Law.}
   \label{moore}
 \end{figure}
 %\end{wrapfigure}
 
-uch of genomic data processing is a statistical inference problem, involving
+Much of genomic data processing is a statistical inference problem, involving
 inferring the DNA sequence of an individual from short ``reads'' of DNA produced
 by sequencing machines. Unfortunately, current pipelines take days to execute
 for even a single human genome.
@@ -256,7 +256,7 @@ Moreover, simpler and faster algorithms can be used to process areas of low comp
    (b) \\
 \end{tabular}
 \end{center}
-\caption{(a) \textbf{Low-complexity region} - Samtools alignment viewer on
+\caption{(a) \textbf{Low-complexity region} - SAMtools alignment viewer on
 chromosome 20 of NA12878.  The reference sequence is displayed on top, and base
 mismatches are indicated with an actual letter in the read (upper and lower
 case letters refer to the strand direction).  In this case, there is an obvious
@@ -304,7 +304,7 @@ Lastly, skewed coverage---when more reads of one direction align to the referenc
 %\TODO{Give estimates on how many high complexity regions there are}
 
 %-----------------------------------
-\subsection{Region Compexity Classification}
+\subsection{Region Complexity Classification}
 %-----------------------------------
 
 We then use the complexity scores at each base to define high-complexity regions, which are ranges of bases that may contain both high and low complexity bases.
@@ -410,7 +410,7 @@ area.
 %There are two main types of evaluations we plan to make.
 %Since we want to build a faster and more scalable pipeline for SNP calling, we will want to compare our implementation with existing SNP calling pipelines.
 %The main data points of interest are performance, memory usage, scalability, and accuracy.
-%easuring accuracy will be the most difficult part of the evaluation, since it is the least standardized metric.
+%Measuring accuracy will be the most difficult part of the evaluation, since it is the least standardized metric.
 %Our current plan is to compare the SNPs that we call with the SNPs that existing pipelines call as well as existing databases of common SNPs such as dbSNP \cite{dbSNP}.
 %
 %We also will want to explore the state space of different parameters that we can configure with our pipeline.
@@ -435,7 +435,7 @@ simulated data \cite{tvsim} from human Chromosome 20. The simulated data consist
 inserted into the reference for Chromosome 20, which is $63$ bases in length,
 of which 94.4\% are known (not Ns).
 %Artificial reads were then generated from this simulated genome using simNGS \cite{simNGS}.
-We compared BIGGIE to two other variant callers, SAtools mpileup and GATK (see Section~\ref{sec:relatedWork} for a discussion of these two methods). SAtools mpileup was run using the best-practices suggestions, with one pass for generating a raw vcf (common variant format) file and one pass for filtering based on quality metrics. GATK was also run using the best-practices suggestions, with one raw vcf pass, a pass for annotating variants (requires training data), and a pass for filtering based on the the annotation step. When running BIGGIE, we evaluated the false negatives only on the low complexity regions, not the high complexity regions where we did not attempt to call variation.
+We compared BIGGIE to two other variant callers, SAMtools mpileup and GATK (see Section~\ref{sec:relatedWork} for a discussion of these two methods). SAMtools mpileup was run using the best-practices suggestions, with one pass for generating a raw vcf (common variant format) file and one pass for filtering based on quality metrics. GATK was also run using the best-practices suggestions, with one raw vcf pass, a pass for annotating variants (requires training data), and a pass for filtering based on the annotation step. When running BIGGIE, we evaluated the false negatives only on the low complexity regions, not the high complexity regions where we did not attempt to call variation.
 
 To compare the methods, we only considered SNPs, not more complex structural variation.
 
@@ -511,11 +511,11 @@ complexity regions, we ran our simple SNP caller only on low-complexity regions.
 \label{sec:relatedWork}
 %-----------------
 
-There are several existing variant callers, such at CASAVA \cite{casava}, SAtools mpileup \cite{samtools}, GATK \cite{gatk}, and Platypus \cite{platypus}. Each one has unique algorithmic innovations, but there are a core set of steps that are commonly used. CASAVA is Illumina's variant caller, and is not free, so we do not compare against it.
+There are several existing variant callers, such at CASAVA \cite{casava}, SAMtools mpileup \cite{samtools}, GATK \cite{gatk}, and Platypus \cite{platypus}. Each one has unique algorithmic innovations, but there are a core set of steps that are commonly used. CASAVA is Illumina's variant caller, and is not free, so we do not compare against it.
 
 SAMtools mpileup uses a set of alignment filters that attempt to distinguish artifacts from true variation. They also use the concept of a Base Alignment Quality (BAQ), which is the probability that a read base is misaligned. Filtering on BAQ scores helps them eliminate false positive SNPs that are truly small indels. Some drawbacks of mpileup are its slow runtime and somewhat less sophisticated filtering.
 
-%SAtools is being replaced by GATK as the industry standard.
+%SAMtools is being replaced by GATK as the industry standard.
 
 GATK (Genome Analysis Toolkit) has extensive functionality beyond variant calling, but has not released the algorithmic details for their current implementation. On a high level, their variant calling algorithm makes a first pass, identifying areas that might be SNPs, indels, or structural variation. Then a second pass requires the user to specify a set of parameters (such as mapping quality, coverage, etc) and a set of outside training data (where the truth is known), so that the algorithm can learn which variants are true and which are noise. The filtered variants are then output. The combination of outside training data and many user-defined parameters makes GATK very difficult to use and understand. Although
 GATK does have the ability to perform in a distributed environment, this
@@ -524,7 +524,7 @@ ends up being very slow.  Although GATK provides more functionality than simple
 SNP calling, and can be tuned to produce good results, our system is much faster and more
 lightweight than GATK.
 
-ost variant callers consider each candidate SNP independently, but the caller
+Most variant callers consider each candidate SNP independently, but the caller
 Platypus aggregates information within a window of the genome to take into
 account local information. In addition, there are many programs to call more
 complex structural variation, although the field is less developed than SNP
@@ -548,21 +548,21 @@ There are many interesting areas of future work, and we plan for implementation 
 
 \bibitem{1000genomes} The 1000 Genomes Project Consortium. ``A map of human genome variation from population-scale sequencing.'' {\em Nature} (2010) 467:1061–1073.
 
-\bibitem{telescoper} Bresler ., Sheehan S., Chan A., and Song, Y., ``Telescoper: {\it de novo} assembly of highly repetitive regions.'' {\em Bioinformatics} (2012), 28: 311-317.
+\bibitem{telescoper} Bresler M., Sheehan S., Chan A., and Song, Y., ``Telescoper: {\it de novo} assembly of highly repetitive regions.'' {\em Bioinformatics} (2012), 28: 311-317.
 
-\bibitem{bamtools} Barnett D., Garrison E., Quinlan A., Str\"{o}mber ., and arth G., ``BamTools: a C++ API and toolkit for analyzing and managing BA files.'' {\em Bioinformatics} (2011), 27: 1691-1692.
+\bibitem{bamtools} Barnett D., Garrison E., Quinlan A., Str\"{o}mber M., and arth G., ``BamTools: a C++ API and toolkit for analyzing and managing BA files.'' {\em Bioinformatics} (2011), 27: 1691-1692.
 
 \bibitem{casava} CASAVA. (2012), http://www.illumina.com/software/genome\_analyzer\_software.ilmn.
 
 \bibitem{kristalcurtis} Curtis, K., personal communication, (2012).
 
-\bibitem{gatk} DePristo ., Banks E., Poplin R., Garimella K., aguire J., Hartl C., Philippakis A., del Angel G., Rivas ., Hanna ., cKenna A., Fennell T., Kernytsky A., Sivachenko A., Cibulskis K., Gabriel S., Altshuler D., and Daly ., ``A framework for variation discovery and genotyping using next-generation DNA sequencing data.'' {\em Nature Genetics} (2011), 43:491-498.
+\bibitem{gatk} DePristo M., Banks E., Poplin R., Garimella K., aguire J., Hartl C., Philippakis A., del Angel G., Rivas M., Hanna M., cKenna A., Fennell T., Kernytsky A., Sivachenko A., Cibulskis K., Gabriel S., Altshuler D., and Daly M., ``A framework for variation discovery and genotyping using next-generation DNA sequencing data.'' {\em Nature Genetics} (2011), 43:491-498.
 
 \bibitem{haussler} Haussler D. Keynote Address: The UCSC Cancer Genomics Hub. (2012) https://www.usenix.org/conference/osdi12/keynote-address.
 
 \bibitem{bwa} Li H. and Durbin R. ``Fast and accurate short read alignment with Burrows-Wheeler Transform.'' {\em Bioinformatics} (2009), 25:1754-60.
 
-\bibitem{samtools} Li H., Handsaker B., Wysoker A., Fennell T., Ruan J., Homer N., arth G., Abecasis G., Durbin R. and 1000 Genome Project Data Processing Subgroup, ``The Sequence alignment/map (SA) format and SAtools.'' {\em Bioinformatics} (2009), 25: 2078-9.
+\bibitem{samtools} Li H., Handsaker B., Wysoker A., Fennell T., Ruan J., Homer N., arth G., Abecasis G., Durbin R. and 1000 Genome Project Data Processing Subgroup, ``The Sequence alignment/map (SAM) format and SAMtools.'' {\em Bioinformatics} (2009), 25: 2078-9.
 
 \bibitem{tvsim} Liptrap J., TVsim genomic read simulation program. (2012).
 
@@ -580,7 +580,7 @@ There are many interesting areas of future work, and we plan for implementation 
 
 \bibitem{structuralVar} Tuzun E. {\em et al}, ``Fine-scale structural variation of the human genome.'' {\em Nature Genetics} (2005), 37: 727-732. 
 
-\bibitem{snap} Zaharia ., Bolosky W., Curtis K., Fox A., Patterson P., Shenker S., Stoica I., Karp R., Sittler T., ``Faster and More Accurate Sequence Alignment with SNAP.'' (2011) http://arxiv.org/abs/1111.5572.
+\bibitem{snap} Zaharia M., Bolosky W., Curtis K., Fox A., Patterson P., Shenker S., Stoica I., Karp R., Sittler T., ``Faster and More Accurate Sequence Alignment with SNAP.'' (2011) http://arxiv.org/abs/1111.5572.
 
 \end{thebibliography}
 
