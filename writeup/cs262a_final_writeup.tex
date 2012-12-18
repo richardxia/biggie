@@ -32,7 +32,7 @@ pace; indeed, current sequencing pipelines take days to execute for even a
 single human genome.  In this work, we describe the Big Genomics Inference
 Engine (BIGGIE), a faster variant calling pipeline designed for modern
 distributed clusters that supports the efficient processing of thousands to
-millions of genomes.  oreover, the modular design of our system should foster
+millions of genomes.  Moreover, the modular design of our system should foster
 the rapid development and painless integration of new algorithms.  BIGGIE
 hinges on the observation that we do not need to perform the same computation
 on all regions of the genome, but rather can first classify the genome into
@@ -166,7 +166,7 @@ alignment data and subsequently allocate resources accordingly.
 %many other organisms.  Easily obtaining fast and accurate variant calls is thus
 %very important for downstream biological analysis.
 
-%oreover, current app and current algorithms, in particular structural variant
+%Moreover, current app and current algorithms, in particular structural variant
 %callers  While the current algorithms work well for many of the simpler
 %analyses, there is a lack of accurate algorithms involving machine learning and
 %population genetics to perform more complex analyses.  In addition, many of the
@@ -174,7 +174,7 @@ alignment data and subsequently allocate resources accordingly.
 %quickly develop faster and more accurate algorithms.
 
 %\TODO{Instead of focusing just on SNP calling, say that we're building a more general framework}
-%ore specifically we begin with the problem of calling single-nucleotide
+%More specifically we begin with the problem of calling single-nucleotide
 %polymorphisms (SNP, pronounced ``snip''), due to its simplicity compared to
 %other types of analyses, yet we plan to design our pipeline with the
 %possibility of adding more complex analyses later on.  
@@ -190,14 +190,14 @@ alignment data and subsequently allocate resources accordingly.
 %Sequencing errors in different reads should in theory be independent, although separating errors from SNPs can be challenging in areas of low sequencing coverage (i.e. few aligned reads overlap a given base in the reference).
 
 %--------------
-\section{ethods}
+\section{Methods}
 %--------------
 
 The following subsections describe the various steps in BIGGIE, explaining what we have implemented and what remains as future work.
 %as well as how we plan to build them for an efficient distributed system.  
 Several steps
 rely on domain knowledge for improved work distribution and communication.
-oreover, the modularity and efficiency of our system will provide a short 
+Moreover, the modularity and efficiency of our system will provide a short 
 turnaround time between algorithm development and benchmarking, allowing
 researchers to quickly explore the design space of different algorithmic
 choices and ease of developing new algorithms. Figure~\ref{fig:pipeline} shows our basic pipeline. We assume that we start with an
@@ -245,7 +245,7 @@ areas of low complexity (see Figure~\ref{low-complexity}(a)), while areas of
 high complexity might suggest a structural variant (see
 Figure~\ref{low-complexity}(b)).
 The intuition is that load-balancing can be improved if we better differentiate between areas of high and low complexity.
-oreover, simpler and faster algorithms can be used to process areas of low complexity, and we can focus our resources and employ more sophisticated algorithms on the high complexity regions.
+Moreover, simpler and faster algorithms can be used to process areas of low complexity, and we can focus our resources and employ more sophisticated algorithms on the high complexity regions.
 
 \begin{figure}[h!]
 \begin{center}
@@ -320,7 +320,7 @@ We also investigate the effects of changing $t_r$, since increasing $t_r$ may in
 \TODO{more details of SNP calling?}
 We employ SNP calling on both the low-complexity bases and the low-complexity regions, leaving the task of calling SNPs and structural variants on high-complexity bases and regions for future work.
 For these low-complexity bases, our goal is speed and accuracy, which are easier to attain since we are skipping any region we deem complex.
-We implemented a simple consensus-based SNP caller, which roughly builds on the intuition that if a SNP exists, then the majority of the reads which cover that position should agree on a common nucleotide which is different from the reference.\footnote{ore specifically, we use the standard 80-20 approach \cite{gatk} to deal with diploid genomes and differentiate between homozygous and heterozygous SNPs.}
+We implemented a simple consensus-based SNP caller, which roughly builds on the intuition that if a SNP exists, then the majority of the reads which cover that position should agree on a common nucleotide which is different from the reference.\footnote{More specifically, we use the standard 80-20 approach \cite{gatk} to deal with diploid genomes and differentiate between homozygous and heterozygous SNPs.}
 This algorithm is embarrassingly data-parallel and requires no interprocess communication, and may be trivially parallelized over a cluster, with the only requirement being that the reads need to be distributed once at the beginning.
 
 %\begin{table}
@@ -362,7 +362,7 @@ There are several techniques used for SNP calling,
 %shared between different genomes and be used to provide more accurate SNP
 %calls. 
 and the modularity of our system allows us to easily switch between these
-different options.  ore advanced variant detection algorithms exploit common
+different options.  More advanced variant detection algorithms exploit common
 ancestry among the individuals being studied to pool statistical strength among
 samples.  These estimators have been shown to perform better than the na\"{i}ve
 approach described above, particularly in the case of missing data and/or low
@@ -564,7 +564,7 @@ There are many interesting areas of future work, and we plan for implementation 
 
 \bibitem{structuralVar} Tuzun E. {\em et al}, ``Fine-scale structural variation of the human genome.'' {\em Nature Genetics} (2005), 37: 727-732. 
 
-\bibitem{snap} Zaharia ., Bolosky W., Curtis K., Fox A., Patterson P., Shenker S., Stoica I., Karp R., Sittler T., ``Faster and ore Accurate Sequence Alignment with SNAP.'' (2011) http://arxiv.org/abs/1111.5572.
+\bibitem{snap} Zaharia ., Bolosky W., Curtis K., Fox A., Patterson P., Shenker S., Stoica I., Karp R., Sittler T., ``Faster and More Accurate Sequence Alignment with SNAP.'' (2011) http://arxiv.org/abs/1111.5572.
 
 \end{thebibliography}
 
