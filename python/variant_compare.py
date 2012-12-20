@@ -144,3 +144,32 @@ def weird_bases(file_name, threshold, false_neg_array):
                 num_uncalled_neg += 1
     print('num uncalled false neg ' + str(num_uncalled_neg))
     return num_uncalled_neg
+
+# obtain lst of weird bases from file
+def region_bases(file_name, false_neg_array):
+    f = file(file_name,'r')
+    num_uncalled_neg = 0
+
+    iterator = sorted(false_neg_array).__iter__()
+    current_pos = iterator.next()
+    #print current_pos
+    try:
+        for line in f:
+            if line[0] == 'R':
+                tokens = line.split()
+                region_start = int(tokens[1])
+                region_end = int(tokens[3])
+                #print(region_start, " ", region_end)
+                while current_pos < region_start:
+                    current_pos = iterator.next()
+                    #print current_pos
+                #print("In")
+                while current_pos >= region_start and current_pos <= region_end:
+                    current_pos = iterator.next()
+                    #print current_pos
+                    num_uncalled_neg += 1
+                #print("Out")
+    except:
+        pass
+    print('num uncalled false neg ' + str(num_uncalled_neg))
+    return num_uncalled_neg
