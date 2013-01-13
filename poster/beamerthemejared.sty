@@ -1,0 +1,147 @@
+% this style was created by Philippe Dreuw and Thomas Deselaers
+\ProvidesPackage{beamerthemejared}
+
+%%%%colors
+%\definecolor{aublue}{HTML}{0E1F47}
+%\definecolor{mygrey}{rgb}{.9,.9,.9}
+%\definecolor{mydarkgrey}{rgb}{.7,.7,.7}
+%\definecolor{oxblue}{RGB}{0,33,71}
+% \definecolor{oxblue}{RGB}{0,114,63}
+% \definecolor{oxblue}{RGB}{0,119,112}
+\definecolor{berkgold}{RGB}{237,207,47}
+\definecolor{berkblue}{RGB}{42,82,145}
+\definecolor{hominid}{RGB}{97,192,0}
+\definecolor{neand}{RGB}{194,191,0}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \RequirePackage{tangocolors}
+%\selectcolormodel{cmyk}
+\mode<presentation>
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\setbeamercolor{headline}{fg=berkblue, bg=white}
+\setbeamercolor{footline}{fg=white, bg=berkblue}
+\setbeamerfont{footline}{size=\large,series=\tt}
+\setbeamercolor{separation line}{bg=berkblue}
+\setbeamercolor{lower separation line foot}{bg=berkblue}
+\setbeamercolor{title in headline}{fg=berkblue}
+\setbeamercolor{author in headline}{fg=berkblue}
+\setbeamercolor{institute in headline}{fg=berkblue}
+
+\setbeamercolor{framesubtitle}{fg=white, bg=berkblue}
+\setbeamercolor{author in head/foot}{fg=white, bg=berkblue}
+\setbeamercolor{title in head/foot}{fg=white, bg=berkblue}
+
+\setbeamercolor{block body}{bg=white,fg=black}
+\setbeamercolor{block title}{fg=white,bg=berkblue}
+\setbeamerfont{block title}{size=\large,series=\bf}
+%\setbeamercolor{upper separation line head}{fg=ta2orange}
+\setbeamercolor{background canvas}{bg=berkgold}
+
+\setbeamercolor{alerted text}{fg=berkblue}
+
+% \setbeamercolor{example text}{fg=taorange}
+\setbeamercolor{structure}{fg=berkblue}
+
+\setbeamertemplate{itemize items}[triangle]
+\setbeamertemplate{navigation symbols}{}  % no navigation on a poster
+\setbeamertemplate{caption}[numbered]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\setbeamertemplate{block begin}{
+  \vskip.75ex
+  \begin{beamercolorbox}[rounded=true,shadow=false,leftskip=1cm,colsep*=.75ex]{block title}%
+    \usebeamerfont*{block title}\insertblocktitle
+  \end{beamercolorbox}%
+  {\ifbeamercolorempty[bg]{block body}{}{\nointerlineskip\vskip-0.5pt}}%
+  \usebeamerfont{block body}%
+  \begin{beamercolorbox}[rounded=true,shadow=false,colsep*=.75ex,sep=.75ex,vmode]{block body}%
+    \ifbeamercolorempty[bg]{block body}{\vskip-.25ex}{\vskip-.75ex}\vbox{}%
+  }
+  \setbeamertemplate{block end}{
+  \end{beamercolorbox}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\setbeamertemplate{headline}{
+  \leavevmode
+
+  \begin{beamercolorbox}[wd=\paperwidth]{lower separation line head}
+    \rule{0pt}{8pt}
+  \end{beamercolorbox}
+
+  \begin{beamercolorbox}[wd=\paperwidth]{headline}
+    \begin{columns}[T]
+      \begin{column}{.02\paperwidth}
+      \end{column}
+     \begin{column}{.84\paperwidth}
+        \vskip8ex
+        \raggedleft
+        \usebeamercolor{title in headline}{\color{fg}\textbf{\LARGE{\inserttitle}}\\[1ex]}
+        \vskip2ex
+        \usebeamercolor{author in headline}{\color{fg}\large{\insertauthor}\\[1ex]}
+        \usebeamercolor{institute in
+          headline}{\color{fg}\large{\insertinstitute}\\[1ex]}
+     \end{column}
+      
+      \begin{column}{.015\paperwidth}
+      \end{column}
+      
+      \begin{column}{.085\paperwidth}
+        \vskip6ex
+        \begin{center}
+          \setlength\fboxsep{0pt}
+          \setlength\fboxrule{0.5pt}
+%          \fbox{\includegraphics[width=\linewidth]{ox_logo}}
+%          \includegraphics[width=\linewidth]{ox_logo_white_rev.pdf}
+%		\includegraphics[width=\linewidth]{berkeleyLogo.gif}
+		\includegraphics[width=\linewidth]{UCB.jpg}
+        \end{center}
+        \vskip2cm
+      \end{column}
+      \begin{column}{.015\paperwidth}
+      \end{column}
+    \end{columns}
+    \vskip2ex
+  \end{beamercolorbox}
+
+  \begin{beamercolorbox}[wd=\paperwidth]{lower separation line head}
+    \rule{0pt}{8pt}
+  \end{beamercolorbox}
+}
+
+\setbeamertemplate{footline}{
+  \begin{beamercolorbox}[wd=\paperwidth]{upper separation line foot}
+    \rule{0pt}{2pt}
+  \end{beamercolorbox}
+
+  \leavevmode%
+  \begin{beamercolorbox}[ht=6ex,leftskip=1cm,rightskip=1cm]{author in head/foot}%
+    \vskip4ex
+    %\texttt{\large
+    %  http://www.well.ox.ac.uk/{\raise.17ex\hbox{$\scriptstyle\sim$}}{\hskip2mm}mathii}
+    \hfill
+   \texttt{\large \{rxia, ssheehan, yuczhang\}@eecs.berkeley.edu}
+    \vskip2ex
+  \end{beamercolorbox}
+  \vskip0pt%
+  \begin{beamercolorbox}[wd=\paperwidth]{lower separation line foot}
+    \rule{0pt}{2pt}
+  \end{beamercolorbox}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Display a grid to help align images ... and it looks nice with this color scheme
+%\beamertemplategridbackground[1cm]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\mode<all>
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-PDF-mode: t
+%%% TeX-master: "poster"
+%%% End:
